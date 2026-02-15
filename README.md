@@ -3,7 +3,7 @@
 <div align="center">
 
 ![Java](https://img.shields.io/badge/Java-21+-orange?style=for-the-badge&logo=java)
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.2.x-brightgreen?style=for-the-badge&logo=spring)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4x-brightgreen?style=for-the-badge&logo=spring)
 ![React](https://img.shields.io/badge/React-18+-blue?style=for-the-badge&logo=react)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-blue?style=for-the-badge&logo=postgresql)
 ![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)
