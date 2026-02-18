@@ -2,6 +2,7 @@
 # BACKEND (Java/Maven)
 # ============================================
 # Compiled files
+
 target/
 *.class
 *.jar
