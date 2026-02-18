@@ -1,44 +1,55 @@
 package com.nabin.taskmanager.entities;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.springframework.data.annotation.Id;
 
 import java.time.LocalDateTime;
 import java.util.Set;
 
 @Data
-@RequiredArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Entity
 @Table(name = "tasks")
-public class Task
-{
+public class Task {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;  // ⚠️ THIS WAS THE CRITICAL ERROR - you had String title here!
+
+    @Column(nullable = false)
     private String title;
 
+    @Column(columnDefinition = "TEXT")
     private String description;
 
-    private String status;
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private TaskStatus status = TaskStatus.TODO;  // Using enum instead of String
 
-    private String priority;
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private TaskPriority priority = TaskPriority.MEDIUM;  // Using enum instead of String
 
-    @Column(name="due_data")
+    @Column(name = "due_date")  // Fixed typo: "due_data" -> "due_date"
     private LocalDateTime dueDate;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @CreationTimestamp
+    @Column(updatable = false, name = "created_at")
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
     @ManyToMany

@@ -1,33 +1,90 @@
-HELP.md
+# ============================================
+# BACKEND (Java/Maven)
+# ============================================
+# Compiled files
 target/
-.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
+*.class
+*.jar
+*.war
+*.ear
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
 
-### IntelliJ IDEA ###
-.idea
-*.iws
+# IDE
+.idea/
 *.iml
-*.ipr
-
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
-
-### VS Code ###
 .vscode/
+*.swp
+*.swo
+
+# Application properties with secrets
+**/application-local.properties
+**/application-dev.properties
+**/application-prod.properties
+
+# Logs
+*.log
+logs/
+
+# ============================================
+# FRONTEND (React/Node)
+# ============================================
+# Dependencies
+frontend/node_modules/
+frontend/.pnpm-store/
+
+# Build output
+frontend/dist/
+frontend/build/
+
+# Environment
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+
+# IDE
+frontend/.vscode/
+frontend/.idea/
+
+# Misc
+.DS_Store
+Thumbs.db
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+```
+
+---
+
+## 📂 Your Current Backend Structure (src folder)
+
+Let me verify what you should have in `src/main/java/com/nabin/taskmanager/`:
+```
+src/main/java/com/nabin/taskmanager/
+├── entities/
+│   ├── User.java
+│   ├── Role.java
+│   ├── Task.java
+│   ├── Category.java
+│   ├── TaskStatus.java           ← Enum
+│   └── TaskPriority.java         ← Enum
+├── repository/
+│   ├── UserRepository.java
+│   ├── RoleRepository.java
+│   ├── TaskRepository.java
+│   └── CategoryRepository.java
+├── dto/
+│   ├── UserRegistrationDTO.java
+│   ├── UserLoginDTO.java
+│   ├── UserResponseDTO.java
+│   ├── TaskRequestDTO.java
+│   ├── TaskResponseDTO.java
+│   ├── CategoryDTO.java
+│   ├── RoleDTO.java
+│   └── LoginResponseDTO.java
+├── mapper/
+│   └── DTOMapper.java
+└── TaskManagerApplication.java
