@@ -1,5 +1,9 @@
-package com.nabin.taskmanager.exception;
+package com.nabin.taskmanager.exception.global;
 
+import com.nabin.taskmanager.exception.DuplicateResourceException;
+import com.nabin.taskmanager.exception.ErrorResponse;
+import com.nabin.taskmanager.exception.ResourceNotFoundException;
+import com.nabin.taskmanager.exception.UnauthorizedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;

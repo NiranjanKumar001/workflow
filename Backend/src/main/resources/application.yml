@@ -3,9 +3,9 @@ spring:
     name: Task Manager
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/taskmanager
-    username: ${DB_USERNAME:taskmanager_user}
-    password: ${DB_PASSWORD:your_secure_password}
+    url: jdbc:postgresql://localhost:5432/taskmanager_db
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:nabin99}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10

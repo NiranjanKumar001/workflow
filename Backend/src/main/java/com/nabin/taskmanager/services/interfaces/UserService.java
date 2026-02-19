@@ -1,4 +1,4 @@
-package com.nabin.taskmanager.services;
+package com.nabin.taskmanager.services.interfaces;
 
 import com.nabin.taskmanager.dto.UserRegistrationDTO;
 import com.nabin.taskmanager.dto.UserResponseDTO;

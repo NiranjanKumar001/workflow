@@ -1,4 +1,4 @@
-package com.nabin.taskmanager.services;
+package com.nabin.taskmanager.services.impl;
 
 import com.nabin.taskmanager.dto.UserRegistrationDTO;
 import com.nabin.taskmanager.dto.UserResponseDTO;
@@ -9,6 +9,7 @@ import com.nabin.taskmanager.exception.ResourceNotFoundException;
 import com.nabin.taskmanager.mapper.DTOMapper;
 import com.nabin.taskmanager.repository.RoleRepository;
 import com.nabin.taskmanager.repository.UserRepository;
+import com.nabin.taskmanager.services.interfaces.UserService;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -29,6 +30,7 @@ public class UserServiceImpl implements UserService
     private final PasswordEncoder passwordEncoder;
     private final DTOMapper dtoMapper;
 
+//  Method to SAVE user details
     @Override
     public UserResponseDTO registerUser(UserRegistrationDTO registrationDTO) {
 
@@ -69,15 +71,19 @@ public class UserServiceImpl implements UserService
         return dtoMapper.toUserResponseDTO(saveduser);
     }
 
+// Method to GET user details - by id
     @Override
     @Transactional(readOnly = true)
-    public UserResponseDTO getUserById(Long id) {
+    public UserResponseDTO getUserById(Long id)
+    {
         // Fetch user or throw exception
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
         return dtoMapper.toUserResponseDTO(user);
     }
 
+
+//  Method to GET users - by email
     @Override
     @Transactional(readOnly = true)
     public UserResponseDTO getUserByEmail(String email)
@@ -88,18 +94,26 @@ public class UserServiceImpl implements UserService
         return dtoMapper.toUserResponseDTO(user);
     }
 
+//  Methods to GET user - by Username
     @Override
+    @Transactional(readOnly = true)
     public UserResponseDTO getUserByUsername(String username) {
-        return null;
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "username", username));
+        return dtoMapper.toUserResponseDTO(user);
     }
 
+//  Methods to CHECK user - by email
     @Override
+    @Transactional(readOnly = true)
     public boolean existsByEmail(String email) {
-        return false;
+        return userRepository.existsByEmail(email);
     }
 
+// Methods to CHECK user - by Username
     @Override
+    @Transactional(readOnly = true)
     public boolean existsByUsername(String username) {
-        return false;
+        return userRepository.existsByUsername(username);
     }
 }
