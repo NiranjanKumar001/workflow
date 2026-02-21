@@ -55,7 +55,7 @@ Task Manager is a production-ready web application that allows users to manage t
 
 | Login Page | Dashboard | Task Management |
 |------------|-----------|-----------------|
-| ![Login](screenshots/login.png) | ![Dashboard](screenshots/dashboard.png) | ![Tasks](screenshots/tasks.png) |
+<!----| ![Login](screenshots/login.png) | ![Dashboard](screenshots/dashboard.png) | ![Tasks](screenshots/tasks.png) |---->
 
 </div>
 
