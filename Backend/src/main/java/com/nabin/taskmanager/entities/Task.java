@@ -21,7 +21,7 @@ public class Task {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;  // ⚠️ THIS WAS THE CRITICAL ERROR - you had String title here!
+    private Long id;
 
     @Column(nullable = false)
     private String title;
@@ -31,13 +31,15 @@ public class Task {
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    private TaskStatus status = TaskStatus.TODO;  // Using enum instead of String
+    @Builder.Default  // ✅ ADD THIS
+    private TaskStatus status = TaskStatus.TODO;
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    private TaskPriority priority = TaskPriority.MEDIUM;  // Using enum instead of String
+    @Builder.Default  // ✅ ADD THIS
+    private TaskPriority priority = TaskPriority.MEDIUM;
 
-    @Column(name = "due_date")  // Fixed typo: "due_data" -> "due_date"
+    @Column(name = "due_date")
     private LocalDateTime dueDate;
 
     @ManyToOne(fetch = FetchType.LAZY)
