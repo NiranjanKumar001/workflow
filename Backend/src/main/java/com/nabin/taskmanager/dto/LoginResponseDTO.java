@@ -9,9 +9,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class LoginResponseDTO
-{
-    private String token;  // JWT token
-    private String type = "Bearer";  // Token type
-    private UserResponseDTO user;  // User information
+public class LoginResponseDTO {
+
+    private String token;
+
+    @Builder.Default
+    private String type = "Bearer";
+
+    private UserResponseDTO user;
 }
