@@ -49,16 +49,17 @@ Task Manager is a production-ready web application that allows users to manage t
 - **Portfolio Ready**: Fully deployed and documented for showcasing professional development skills
 - **Real-World Features**: JWT authentication, OAuth2 integration, responsive design, and production deployment
 
+<!---
 ### Screenshots
 
 <div align="center">
 
 | Login Page | Dashboard | Task Management |
 |------------|-----------|-----------------|
-<!----| ![Login](screenshots/login.png) | ![Dashboard](screenshots/dashboard.png) | ![Tasks](screenshots/tasks.png) |---->
+<!----| ![Login](screenshots/login.png) | ![Dashboard](screenshots/dashboard.png) | ![Tasks](screenshots/tasks.png) |----
 
 </div>
-
+--->
 ---
 
 ## ✨ Features
