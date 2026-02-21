@@ -1,5 +1,6 @@
 package com.nabin.taskmanager.services.impl;
 
+import com.nabin.taskmanager.dto.RoleDTO;
 import com.nabin.taskmanager.dto.UserRegistrationDTO;
 import com.nabin.taskmanager.dto.UserResponseDTO;
 import com.nabin.taskmanager.entities.Role;
@@ -10,6 +11,7 @@ import com.nabin.taskmanager.mapper.DTOMapper;
 import com.nabin.taskmanager.repository.RoleRepository;
 import com.nabin.taskmanager.repository.UserRepository;
 import com.nabin.taskmanager.services.interfaces.UserService;
+import jakarta.validation.Valid;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 //Annotations
 @Service
@@ -115,5 +118,48 @@ public class UserServiceImpl implements UserService
     @Transactional(readOnly = true)
     public boolean existsByUsername(String username) {
         return userRepository.existsByUsername(username);
+    }
+
+    @Override
+    public UserResponseDTO updateUser(Long userId, @Valid UserRegistrationDTO updateDTO) {
+        // Fetch user entity by ID
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+
+        // Check for unique username
+        if (!user.getUsername().equals(updateDTO.getUsername()) &&
+                userRepository.existsByUsername(updateDTO.getUsername())) {
+            throw new RuntimeException("Username already in use");
+        }
+
+        // Check for unique email
+        if (!user.getEmail().equals(updateDTO.getEmail()) &&
+                userRepository.existsByEmail(updateDTO.getEmail())) {
+            throw new RuntimeException("Email already in use");
+        }
+
+        // Update fields
+        user.setUsername(updateDTO.getUsername());
+        user.setEmail(updateDTO.getEmail());
+
+        // Optional: update password if present
+        if (updateDTO.getPassword() != null && !updateDTO.getPassword().isBlank()) {
+            user.setPassword(passwordEncoder.encode(updateDTO.getPassword()));
+        }
+
+        // Save updated entity
+        userRepository.save(user);
+
+        // Map entity → UserResponseDTO
+        return UserResponseDTO.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .enabled(user.getEnabled())
+                .createdAt(user.getCreatedAt())
+                .roles(user.getRoles().stream()
+                        .map(role -> new RoleDTO(role.getId(), role.getName()))
+                        .collect(Collectors.toSet()))
+                .build();
     }
 }
