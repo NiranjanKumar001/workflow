@@ -2,6 +2,7 @@ package com.nabin.taskmanager.dto;
 
 import com.nabin.taskmanager.entities.TaskPriority;
 import com.nabin.taskmanager.entities.TaskStatus;
+import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -30,5 +31,6 @@ public class TaskRequestDTO {
     @NotNull(message = "Priority is required")
     private TaskPriority priority;
 
+    @Future(message = "Due date must be in the future")
     private LocalDateTime dueDate;
 }
