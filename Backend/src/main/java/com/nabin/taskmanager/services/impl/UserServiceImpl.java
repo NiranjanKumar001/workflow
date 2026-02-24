@@ -6,6 +6,7 @@ import com.nabin.taskmanager.dto.UserResponseDTO;
 import com.nabin.taskmanager.entities.Role;
 import com.nabin.taskmanager.entities.User;
 import com.nabin.taskmanager.exception.DuplicateResourceException;
+import com.nabin.taskmanager.exception.InvalidBusinessRuleException;
 import com.nabin.taskmanager.exception.ResourceNotFoundException;
 import com.nabin.taskmanager.mapper.DTOMapper;
 import com.nabin.taskmanager.repository.RoleRepository;
@@ -25,26 +26,25 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional
-public class UserServiceImpl implements UserService
-{
+public class UserServiceImpl implements UserService {
     // Dependencies
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final DTOMapper dtoMapper;
 
-//  Method to SAVE user details
+    //  Method to SAVE user details
     @Override
     public UserResponseDTO registerUser(UserRegistrationDTO registrationDTO) {
 
         // Check duplicate email
-        if(userRepository.existsByEmail(registrationDTO.getEmail())) {
-            throw new DuplicateResourceException("user","email",registrationDTO.getEmail());
+        if (userRepository.existsByEmail(registrationDTO.getEmail())) {
+            throw new DuplicateResourceException("user", "email", registrationDTO.getEmail());
         }
 
         // Check duplicate username
-        if(userRepository.existsByUsername(registrationDTO.getUsername())) {
-            throw new DuplicateResourceException("user","username",registrationDTO.getUsername());
+        if (userRepository.existsByUsername(registrationDTO.getUsername())) {
+            throw new DuplicateResourceException("user", "username", registrationDTO.getUsername());
         }
 
         // Create new user and encode password
@@ -57,7 +57,7 @@ public class UserServiceImpl implements UserService
 
         // Get default role or create if missing
         Role userRole = roleRepository.findByName("ROLE_USER")
-                .orElseGet(()-> {
+                .orElseGet(() -> {
                     Role newRole = new Role();
                     newRole.setName("ROLE_USER");
                     return roleRepository.save(newRole);
@@ -74,11 +74,10 @@ public class UserServiceImpl implements UserService
         return dtoMapper.toUserResponseDTO(saveduser);
     }
 
-// Method to GET user details - by id
+    // Method to GET user details - by id
     @Override
     @Transactional(readOnly = true)
-    public UserResponseDTO getUserById(Long id)
-    {
+    public UserResponseDTO getUserById(Long id) {
         // Fetch user or throw exception
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
@@ -86,18 +85,17 @@ public class UserServiceImpl implements UserService
     }
 
 
-//  Method to GET users - by email
+    //  Method to GET users - by email
     @Override
     @Transactional(readOnly = true)
-    public UserResponseDTO getUserByEmail(String email)
-    {
+    public UserResponseDTO getUserByEmail(String email) {
         // Fetch user by email
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
         return dtoMapper.toUserResponseDTO(user);
     }
 
-//  Methods to GET user - by Username
+    //  Methods to GET user - by Username
     @Override
     @Transactional(readOnly = true)
     public UserResponseDTO getUserByUsername(String username) {
@@ -106,14 +104,14 @@ public class UserServiceImpl implements UserService
         return dtoMapper.toUserResponseDTO(user);
     }
 
-//  Methods to CHECK user - by email
+    //  Methods to CHECK user - by email
     @Override
     @Transactional(readOnly = true)
     public boolean existsByEmail(String email) {
         return userRepository.existsByEmail(email);
     }
 
-// Methods to CHECK user - by Username
+    // Methods to CHECK user - by Username
     @Override
     @Transactional(readOnly = true)
     public boolean existsByUsername(String username) {
@@ -162,4 +160,20 @@ public class UserServiceImpl implements UserService
                         .collect(Collectors.toSet()))
                 .build();
     }
+
+    private void validateUserBusinessRules(UserRegistrationDTO registrationDTO) {
+
+        String[] reservedWords = {"admin", "root", "system", "administrator", "moderator"};
+        String usernameLower = registrationDTO.getUsername().toLowerCase();
+
+        for (String reserved : reservedWords) {
+            if (usernameLower.contains(reserved)) {
+                throw new InvalidBusinessRuleException(
+                        "Username cannot contain reserved word: " + reserved
+                );
+            }
+        }
+    }
+
+
 }
