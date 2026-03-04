@@ -1,8 +1,8 @@
-package com.nabin.taskmanager.specification;
+package com.nabin.workflow.specification;
 
-import com.nabin.taskmanager.entities.Task;
-import com.nabin.taskmanager.entities.TaskPriority;
-import com.nabin.taskmanager.entities.TaskStatus;
+import com.nabin.workflow.entities.Task;
+import com.nabin.workflow.entities.TaskPriority;
+import com.nabin.workflow.entities.TaskStatus;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 
