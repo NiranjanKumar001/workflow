@@ -1,10 +1,12 @@
-package com.nabin.taskmanager.repository;
+package com.nabin.workflow.repository;
 
-import com.nabin.taskmanager.entities.Task;
-import com.nabin.taskmanager.entities.TaskPriority;
-import com.nabin.taskmanager.entities.TaskStatus;
+import com.nabin.workflow.entities.Task;
+import com.nabin.workflow.entities.TaskPriority;
+import com.nabin.workflow.entities.TaskStatus;
+import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;  // ✅ ADD THIS
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -26,6 +28,11 @@ public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificat
 
  @Query("SELECT t FROM Task t WHERE t.user.id = :userId AND t.dueDate < :now AND t.status != 'DONE'")
  List<Task> findOverdueTasks(@Param("userId") Long userId, @Param("now") LocalDateTime now);
-
+ long countByUserId(Long userId);
  long countByUserIdAndStatus(Long userId, TaskStatus status);
+
+ @Modifying
+ @Transactional
+ @Query("DELETE FROM Task t WHERE t.user.id = :userId")
+ void deleteByUserId(Long userId);
 }
