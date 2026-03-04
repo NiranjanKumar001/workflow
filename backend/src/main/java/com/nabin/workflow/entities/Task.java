@@ -1,4 +1,4 @@
-package com.nabin.taskmanager.entities;
+package com.nabin.workflow.entities;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -31,12 +31,12 @@ public class Task {
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    @Builder.Default  // ✅ ADD THIS
+    @Builder.Default
     private TaskStatus status = TaskStatus.TODO;
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    @Builder.Default  // ✅ ADD THIS
+    @Builder.Default
     private TaskPriority priority = TaskPriority.MEDIUM;
 
     @Column(name = "due_date")
