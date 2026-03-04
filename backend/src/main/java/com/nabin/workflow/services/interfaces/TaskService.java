@@ -1,9 +1,9 @@
-package com.nabin.taskmanager.services.interfaces;
+package com.nabin.workflow.services.interfaces;
 
-import com.nabin.taskmanager.dto.TaskRequestDTO;
-import com.nabin.taskmanager.dto.TaskResponseDTO;
-import com.nabin.taskmanager.entities.TaskPriority;
-import com.nabin.taskmanager.entities.TaskStatus;
+import com.nabin.workflow.dto.request.TaskRequestDTO;
+import com.nabin.workflow.dto.response.TaskResponseDTO;
+import com.nabin.workflow.entities.TaskPriority;
+import com.nabin.workflow.entities.TaskStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
