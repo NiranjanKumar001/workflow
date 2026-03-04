@@ -45,6 +45,7 @@ function App() {
           <Route path="/tasks" element={<ProtectedRoute><TasksPage /></ProtectedRoute>} />
           <Route path="/" element={<Navigate to="/dashboard" />} />
           <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>}/>
+
   {/* Admin Routes */}
         <Route
           path="/admin"
