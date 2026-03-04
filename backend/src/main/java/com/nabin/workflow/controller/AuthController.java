@@ -1,9 +1,7 @@
 package com.nabin.workflow.controller;
 
 import com.nabin.workflow.dto.common.ApiResponse;
-import com.nabin.workflow.dto.request.RefreshTokenRequest;
-import com.nabin.workflow.dto.request.UserLoginDTO;
-import com.nabin.workflow.dto.request.UserRegistrationDTO;
+import com.nabin.workflow.dto.request.*;
 import com.nabin.workflow.dto.response.LoginResponseDTO;
 import com.nabin.workflow.dto.response.RefreshTokenResponse;
 import com.nabin.workflow.dto.response.UserResponseDTO;
@@ -185,6 +183,75 @@ public class AuthController {
         ApiResponse<Boolean> response = ApiResponse.success(
                 exists ? "Username is already taken" : "Username is available",
                 exists
+        );
+
+        return ResponseEntity.ok(response);
+    }
+    /**
+     * Verify email
+     */
+    @GetMapping("/verify-email")
+    public ResponseEntity<ApiResponse<Void>> verifyEmail(@RequestParam String token) {
+        log.info("📧 Email verification request");
+
+        userService.verifyEmail(token);
+
+        ApiResponse<Void> response = ApiResponse.success(
+                "Email verified successfully! You can now login."
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Resend verification email
+     */
+    @PostMapping("/resend-verification")
+    public ResponseEntity<ApiResponse<Void>> resendVerification(
+            @RequestParam String email) {
+
+        log.info("📧 Resend verification request for: {}", email);
+
+        userService.resendVerificationEmail(email);
+
+        ApiResponse<Void> response = ApiResponse.success(
+                "Verification email sent! Please check your inbox."
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Forgot password
+     */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequest request) {
+
+        log.info("🔑 Password reset request for: {}", request.getEmail());
+
+        userService.forgotPassword(request.getEmail());
+
+        ApiResponse<Void> response = ApiResponse.success(
+                "Password reset email sent! Please check your inbox."
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Reset password
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(
+            @Valid @RequestBody ResetPasswordRequest request) {
+
+        log.info("Password reset confirmation");
+
+        userService.resetPassword(request);
+
+        ApiResponse<Void> response = ApiResponse.success(
+                "Password reset successfully! You can now login with your new password."
         );
 
         return ResponseEntity.ok(response);
