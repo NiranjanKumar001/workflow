@@ -1,7 +1,8 @@
-package com.nabin.taskmanager.dto;
+package com.nabin.workflow.dto.response;
 
-import com.nabin.taskmanager.entities.TaskPriority;
-import com.nabin.taskmanager.entities.TaskStatus;
+import com.nabin.workflow.dto.request.CategoryRequestDTO;
+import com.nabin.workflow.entities.TaskPriority;
+import com.nabin.workflow.entities.TaskStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,6 +24,6 @@ public class TaskResponseDTO
     private LocalDateTime dueDate;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private Set<CategoryDTO> categories;
+    private Set<CategoryRequestDTO> categories;
     // Include categories if task has them
 }
