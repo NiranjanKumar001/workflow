@@ -1,4 +1,4 @@
-package com.nabin.taskmanager;
+package com.nabin.workflow;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
