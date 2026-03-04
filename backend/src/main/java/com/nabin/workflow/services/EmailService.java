@@ -91,7 +91,7 @@ public class EmailService {
 
         mailSender.send(message);
     }
-
+// For verification
     /**
      * Build verification email HTML
      */
