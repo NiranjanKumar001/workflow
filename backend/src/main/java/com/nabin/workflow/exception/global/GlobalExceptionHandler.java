@@ -1,5 +1,9 @@
-package com.nabin.taskmanager.exception;
+package com.nabin.workflow.exception.global;
 
+import com.nabin.workflow.exception.DuplicateResourceException;
+import com.nabin.workflow.exception.ErrorResponse;
+import com.nabin.workflow.exception.ResourceNotFoundException;
+import com.nabin.workflow.exception.UnauthorizedException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -95,7 +99,7 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.UNAUTHORIZED.value())
                 .error("Unauthorized")
-                .message(ex.getMessage())
+                .message(ex.getMessage())  // Use the exception message
                 .path(request.getDescription(false).replace("uri=", ""))
                 .build();
 
