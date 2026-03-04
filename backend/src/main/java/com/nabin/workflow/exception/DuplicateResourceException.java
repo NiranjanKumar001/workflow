@@ -1,9 +1,9 @@
-package com.nabin.taskmanager.exception;
+package com.nabin.workflow.exception;
 
 public class DuplicateResourceException extends RuntimeException
 {
 
-    public DuplicateResourceException(String message)
+    public DuplicateResourceException(String email, String message)
     {
         super(message);
     }
