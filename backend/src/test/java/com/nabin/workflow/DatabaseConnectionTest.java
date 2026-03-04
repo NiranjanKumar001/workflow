@@ -1,4 +1,4 @@
-package com.nabin.taskmanager;
+package com.nabin.workflow;
 
 import org.hibernate.validator.internal.util.Contracts;
 import org.junit.jupiter.api.Test;
