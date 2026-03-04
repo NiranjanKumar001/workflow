@@ -1,4 +1,4 @@
-package com.nabin.taskmanager.entities;
+package com.nabin.workflow.entities;
 
 public enum TaskPriority {
     LOW,
