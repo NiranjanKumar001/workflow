@@ -1,4 +1,4 @@
-# Task Manager - Full Stack Web Application
+# WorkFlow - Full Stack Web Application
 
 <div align="center">
 
