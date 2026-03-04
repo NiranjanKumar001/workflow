@@ -1,21 +1,25 @@
-package com.nabin.taskmanager.services.impl;
+package com.nabin.workflow.services.impl;
 
-import com.nabin.taskmanager.dto.TaskRequestDTO;
-import com.nabin.taskmanager.dto.TaskResponseDTO;
-import com.nabin.taskmanager.entities.Task;
-import com.nabin.taskmanager.entities.TaskPriority;
-import com.nabin.taskmanager.entities.TaskStatus;
-import com.nabin.taskmanager.entities.User;
-import com.nabin.taskmanager.exception.ResourceNotFoundException;
-import com.nabin.taskmanager.mapper.DTOMapper;
-import com.nabin.taskmanager.repository.TaskRepository;
-import com.nabin.taskmanager.repository.UserRepository;
-import com.nabin.taskmanager.services.interfaces.TaskService;
-import com.nabin.taskmanager.specification.TaskSpecification;
+import com.nabin.workflow.dto.request.TaskRequestDTO;
+import com.nabin.workflow.dto.response.TaskResponseDTO;
+import com.nabin.workflow.entities.Task;
+import com.nabin.workflow.entities.TaskPriority;
+import com.nabin.workflow.entities.TaskStatus;
+import com.nabin.workflow.entities.User;
+import com.nabin.workflow.exception.ResourceNotFoundException;
+import com.nabin.workflow.exception.UnauthorizedException;
+import com.nabin.workflow.mapper.DTOMapper;
+import com.nabin.workflow.repository.TaskRepository;
+import com.nabin.workflow.repository.UserRepository;
+import com.nabin.workflow.util.SecurityUtil;
+import com.nabin.workflow.services.interfaces.TaskService;
+import com.nabin.workflow.specification.TaskSpecification;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,23 +30,28 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class TaskServiceImpl implements TaskService {
 
-    // Dependencies
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
     private final DTOMapper dtoMapper;
 
+    /**
+     * Create a new task
+     * Validates user owns the task
+     */
     @Override
+    @PreAuthorize("isAuthenticated()")  // Must be logged in
     public TaskResponseDTO createTask(Long userId, TaskRequestDTO taskRequestDTO) {
-        // Find user
+        // Validate ownership
+        validateUserOwnership(userId);
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
-        // Business rule validation
-        validateTaskBusinessRules(taskRequestDTO);  // Fixed typo
+        validateTaskBusinessRules(taskRequestDTO);
 
-        // Create task
         Task task = Task.builder()
                 .title(taskRequestDTO.getTitle())
                 .description(taskRequestDTO.getDescription())
@@ -52,28 +61,40 @@ public class TaskServiceImpl implements TaskService {
                 .user(user)
                 .build();
 
-        // Save task
         Task savedTask = taskRepository.save(task);
+        log.info("Task created: {} by user: {}", savedTask.getId(), userId);
 
-        // Convert to DTO and return
         return dtoMapper.toTaskResponseDTO(savedTask);
     }
 
-    // Get Task by ID from the user
+    /**
+     * Get task by ID
+     * Validates user owns the task
+     */
     @Override
     @Transactional(readOnly = true)
+    @PreAuthorize("isAuthenticated()")
     public TaskResponseDTO getTaskById(Long userId, Long taskId) {
+        // Validate ownership
+        validateUserOwnership(userId);
+
         Task task = taskRepository.findByIdAndUserId(taskId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task", "id", taskId));
 
         return dtoMapper.toTaskResponseDTO(task);
     }
 
-    // Get All Task List by user ID
+    /**
+     * Get all tasks for user
+     * Validates user owns the tasks
+     */
     @Override
     @Transactional(readOnly = true)
+    @PreAuthorize("isAuthenticated()")
     public List<TaskResponseDTO> getAllTasksByUserId(Long userId) {
-        // Verify user exists
+        // Validate ownership
+        validateUserOwnership(userId);
+
         if (!userRepository.existsById(userId)) {
             throw new ResourceNotFoundException("User", "id", userId);
         }
@@ -85,11 +106,17 @@ public class TaskServiceImpl implements TaskService {
                 .collect(Collectors.toList());
     }
 
-    // Get Task by status and user ID
+    /**
+     * Get tasks by status
+     * Validates user owns the tasks
+     */
     @Override
     @Transactional(readOnly = true)
+    @PreAuthorize("isAuthenticated()")
     public List<TaskResponseDTO> getTasksByStatus(Long userId, TaskStatus status) {
-        // Verify user exists
+        // Validate ownership
+        validateUserOwnership(userId);
+
         if (!userRepository.existsById(userId)) {
             throw new ResourceNotFoundException("User", "id", userId);
         }
@@ -101,44 +128,58 @@ public class TaskServiceImpl implements TaskService {
                 .collect(Collectors.toList());
     }
 
-    // Update the task
+    /**
+     * Update task
+     * Validates user owns the task
+     */
     @Override
+    @PreAuthorize("isAuthenticated()")
     public TaskResponseDTO updateTask(Long userId, Long taskId, TaskRequestDTO taskRequestDTO) {
-        // Find task and verify ownership
+        // Validate ownership
+        validateUserOwnership(userId);
+
         Task task = taskRepository.findByIdAndUserId(taskId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task", "id", taskId));
 
-        //  Business rule validation
         validateTaskBusinessRules(taskRequestDTO);
         validateTaskStatusTransition(task.getStatus(), taskRequestDTO.getStatus());
 
-        // Update task fields
         task.setTitle(taskRequestDTO.getTitle());
         task.setDescription(taskRequestDTO.getDescription());
         task.setStatus(taskRequestDTO.getStatus());
         task.setPriority(taskRequestDTO.getPriority());
         task.setDueDate(taskRequestDTO.getDueDate());
 
-        // Save updated task
         Task updatedTask = taskRepository.save(task);
+        log.info("Task updated: {} by user: {}", updatedTask.getId(), userId);
 
-        // Convert to DTO and return
         return dtoMapper.toTaskResponseDTO(updatedTask);
     }
 
+    /**
+     * Delete task
+     * Validates user owns the task
+     */
     @Override
+    @PreAuthorize("isAuthenticated()")
     public void deleteTask(Long userId, Long taskId) {
-        // Find task and verify ownership
+        // Validate ownership
+        validateUserOwnership(userId);
+
         Task task = taskRepository.findByIdAndUserId(taskId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task", "id", taskId));
 
-        // Delete task
         taskRepository.delete(task);
+        log.info("Task deleted: {} by user: {}", taskId, userId);
     }
 
-    // Advanced filtering with pagination
+    /**
+     * Filter tasks with pagination
+     * Validates user owns the tasks
+     */
     @Override
     @Transactional(readOnly = true)
+    @PreAuthorize("isAuthenticated()")
     public Page<TaskResponseDTO> getTasksWithFilters(
             Long userId,
             TaskStatus status,
@@ -148,27 +189,33 @@ public class TaskServiceImpl implements TaskService {
             String searchKeyword,
             Pageable pageable) {
 
-        // Verify user exists
+        // Validate ownership
+        validateUserOwnership(userId);
+
         if (!userRepository.existsById(userId)) {
             throw new ResourceNotFoundException("User", "id", userId);
         }
 
-        // Build specification
         Specification<Task> spec = TaskSpecification.filterTasks(
                 userId, status, priority, dueDateFrom, dueDateTo, searchKeyword
         );
 
-        // Execute query with pagination
         Page<Task> taskPage = taskRepository.findAll(spec, pageable);
 
-        // Convert to DTO
         return taskPage.map(dtoMapper::toTaskResponseDTO);
     }
 
-    // Get overdue tasks
+    /**
+     * Get overdue tasks
+     * Validates user owns the tasks
+     */
     @Override
     @Transactional(readOnly = true)
+    @PreAuthorize("isAuthenticated()")
     public List<TaskResponseDTO> getOverdueTasks(Long userId) {
+        // Validate ownership
+        validateUserOwnership(userId);
+
         if (!userRepository.existsById(userId)) {
             throw new ResourceNotFoundException("User", "id", userId);
         }
@@ -181,10 +228,17 @@ public class TaskServiceImpl implements TaskService {
                 .collect(Collectors.toList());
     }
 
-    // Get tasks due soon
+    /**
+     * Get tasks due soon
+     * Validates user owns the tasks
+     */
     @Override
     @Transactional(readOnly = true)
+    @PreAuthorize("isAuthenticated()")
     public List<TaskResponseDTO> getTasksDueSoon(Long userId, int daysAhead) {
+        // Validate ownership
+        validateUserOwnership(userId);
+
         if (!userRepository.existsById(userId)) {
             throw new ResourceNotFoundException("User", "id", userId);
         }
@@ -198,62 +252,56 @@ public class TaskServiceImpl implements TaskService {
     }
 
     // ========================================
-    // BUSINESS RULE VALIDATION METHODS
+    // SECURITY VALIDATION METHODS
     // ========================================
 
     /**
-     * Validate task business rules
+     * Validate that the authenticated user matches the userId parameter
+     * Throws UnauthorizedException if user tries to access another user's data
      */
+    private void validateUserOwnership(Long userId) {
+        Long currentUserId = SecurityUtil.getCurrentUserId();
+
+        if (!currentUserId.equals(userId)) {
+            log.warn("User {} attempted to access data for user {}", currentUserId, userId);
+            throw new UnauthorizedException("You don't have permission to access this user's data");
+        }
+    }
+
+    // ========================================
+    // BUSINESS RULE VALIDATION METHODS
+    // ========================================
+
     private void validateTaskBusinessRules(TaskRequestDTO taskRequestDTO) {
-        // Rule 1: Title should not be just whitespace
         if (taskRequestDTO.getTitle() != null && taskRequestDTO.getTitle().trim().isEmpty()) {
             throw new IllegalArgumentException("Task title cannot be empty or just whitespace");
         }
 
-        // Rule 2: Due date validation (if provided)
         if (taskRequestDTO.getDueDate() != null) {
-            // Cannot be in the past
             if (taskRequestDTO.getDueDate().isBefore(LocalDateTime.now())) {
                 throw new IllegalArgumentException("Due date cannot be in the past");
             }
 
-            // Cannot be too far in future (max 5 years)
             if (taskRequestDTO.getDueDate().isAfter(LocalDateTime.now().plusYears(5))) {
                 throw new IllegalArgumentException("Due date cannot be more than 5 years in the future");
             }
         }
 
-        // Rule 3: HIGH priority tasks should have a due date
         if (taskRequestDTO.getPriority() == TaskPriority.HIGH && taskRequestDTO.getDueDate() == null) {
             throw new IllegalArgumentException("HIGH priority tasks must have a due date");
         }
 
-        // Rule 4: Description length validation (if provided)
         if (taskRequestDTO.getDescription() != null &&
                 taskRequestDTO.getDescription().length() > 2000) {
             throw new IllegalArgumentException("Description cannot exceed 2000 characters");
         }
     }
 
-    /**
-     * Validate task status transitions
-     */
     private void validateTaskStatusTransition(TaskStatus currentStatus, TaskStatus newStatus) {
-        // Rule 1: Cannot move from DONE back to TODO directly
         if (currentStatus == TaskStatus.DONE && newStatus == TaskStatus.TODO) {
             throw new IllegalArgumentException(
                     "Cannot move task from DONE directly to TODO. Move to IN_PROGRESS first."
             );
         }
-
-        // Rule 2: (Optional) Add more status transition rules if needed
-        // For example: Cannot skip IN_PROGRESS when moving from TODO to DONE
-        /*
-        if (currentStatus == TaskStatus.TODO && newStatus == TaskStatus.DONE) {
-            throw new IllegalArgumentException(
-                "Cannot move task from TODO directly to DONE. Move to IN_PROGRESS first."
-            );
-        }
-        */
     }
 }
