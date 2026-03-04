@@ -1,4 +1,4 @@
-package com.nabin.taskmanager.exception;
+package com.nabin.workflow.exception;
 
 public class TaskNotFoundException extends RuntimeException {
 
