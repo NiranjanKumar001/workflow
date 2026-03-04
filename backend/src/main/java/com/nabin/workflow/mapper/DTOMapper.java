@@ -1,7 +1,10 @@
-package com.nabin.taskmanager.mapper;
+package com.nabin.workflow.mapper;
 
-import com.nabin.taskmanager.dto.*;
-import com.nabin.taskmanager.entities.*;
+import com.nabin.workflow.dto.request.CategoryRequestDTO;
+import com.nabin.workflow.dto.response.RoleResponseDTO;
+import com.nabin.workflow.dto.response.TaskResponseDTO;
+import com.nabin.workflow.dto.response.UserResponseDTO;
+import com.nabin.workflow.entities.*;
 import org.springframework.stereotype.Component;
 
 import java.util.stream.Collectors;
@@ -39,8 +42,8 @@ public class DTOMapper {
     }
 
     // Category Entity -> CategoryDTO
-    public CategoryDTO toCategoryDTO(Category category) {
-        return CategoryDTO.builder()
+    public CategoryRequestDTO toCategoryDTO(Category category) {
+        return CategoryRequestDTO.builder()
                 .id(category.getId())
                 .name(category.getName())
                 .color(category.getColor())
@@ -48,8 +51,8 @@ public class DTOMapper {
     }
 
     // Role Entity -> RoleDTO
-    public RoleDTO toRoleDTO(Role role) {
-        return RoleDTO.builder()
+    public RoleResponseDTO toRoleDTO(Role role) {
+        return RoleResponseDTO.builder()
                 .id(role.getId())
                 .name(role.getName())
                 .build();
