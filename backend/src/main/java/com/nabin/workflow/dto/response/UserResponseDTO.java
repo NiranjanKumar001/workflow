@@ -1,4 +1,4 @@
-package com.nabin.taskmanager.dto;
+package com.nabin.workflow.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,5 +17,5 @@ public class UserResponseDTO {
     private String email;
     private Boolean enabled;
     private LocalDateTime createdAt;
-    private Set<RoleDTO> roles;
+    private Set<RoleResponseDTO> roles;
 }

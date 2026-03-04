@@ -1,4 +1,4 @@
-package com.nabin.taskmanager.dto;
+package com.nabin.workflow.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
