@@ -1,4 +1,4 @@
-package com.nabin.taskmanager.dto;
+package com.nabin.workflow.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class RoleDTO {
+public class RoleResponseDTO {
     private Long id;
     private String name;
 }
