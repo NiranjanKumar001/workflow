@@ -40,7 +40,7 @@ A modern, full-stack task management application built with Spring Boot and Reac
 
 ## 🎯 About The Project
 
-Task Manager is a production-ready web application that allows users to manage their daily tasks efficiently. Built with modern technologies and industry best practices, this project demonstrates a complete full-stack development workflow from design to deployment.
+WorkFlow is a production-ready web application that allows users to manage their daily tasks efficiently. Built with modern technologies and industry best practices, this project demonstrates a complete full-stack development workflow from design to deployment.
 
 ### Why This Project?
 
