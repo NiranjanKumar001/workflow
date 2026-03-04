@@ -1,4 +1,4 @@
-package com.nabin.taskmanager.entities;
+package com.nabin.workflow.entities;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
