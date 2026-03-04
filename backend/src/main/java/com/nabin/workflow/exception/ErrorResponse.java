@@ -1,4 +1,4 @@
-package com.nabin.taskmanager.exception;
+package com.nabin.workflow.exception;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
