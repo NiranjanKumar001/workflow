@@ -1,7 +1,7 @@
-package com.nabin.taskmanager.dto;
+package com.nabin.workflow.dto.request;
 
-import com.nabin.taskmanager.entities.TaskPriority;
-import com.nabin.taskmanager.entities.TaskStatus;
+import com.nabin.workflow.entities.TaskPriority;
+import com.nabin.workflow.entities.TaskStatus;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

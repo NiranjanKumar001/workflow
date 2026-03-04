@@ -1,4 +1,4 @@
-package com.nabin.taskmanager.dto;
+package com.nabin.workflow.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CategoryDTO {
+public class CategoryRequestDTO {
     private Long id;
 
     @NotBlank(message = "Category name is required")
