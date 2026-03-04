@@ -1,6 +1,7 @@
 package com.nabin.workflow.services.interfaces;
 
 import com.nabin.workflow.dto.request.ChangePasswordDTO;
+import com.nabin.workflow.dto.request.ResetPasswordRequest;
 import com.nabin.workflow.dto.request.UpdateProfileDTO;
 import com.nabin.workflow.dto.request.UserRegistrationDTO;
 import com.nabin.workflow.dto.response.UserProfileDTO;
@@ -26,4 +27,9 @@ public interface UserService {
     UserProfileDTO getCurrentUserProfile();
     UserProfileDTO updateCurrentUserProfile(UpdateProfileDTO updateProfileDTO);
     void changePassword(ChangePasswordDTO changePasswordDTO);
+
+    void verifyEmail(String token);
+    void resendVerificationEmail(String email);
+    void forgotPassword(String email);
+    void resetPassword(ResetPasswordRequest request);
 }
