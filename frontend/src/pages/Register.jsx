@@ -76,39 +76,54 @@ function Register() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+ const handleSubmit = async (e) => {
+   e.preventDefault();
 
-    if (!validate()) {
-      return;
-    }
+   if (!validate()) {
+     return;
+   }
 
-    setLoading(true);
+   setLoading(true);
 
-    try {
-      // Remove confirmPassword before sending
-      const { confirmPassword, ...registrationData } = formData;
+   try {
+     console.log('Attempting registration:', formData.email);
 
-      const response = await authApi.register(registrationData);
+     const response = await authApi.register(formData);
 
-      if (response.success) {
-        toast.success(response.message || 'Registration successful!');
-        navigate('/login');
-      }
-    } catch (error) {
-      console.error('Registration error:', error);
-      const errorMessage = error.response?.data?.message || 'Registration failed. Please try again.';
+     console.log('Registration response:', response);
 
-      // Handle field errors
-      if (error.response?.data?.fieldErrors) {
-        setErrors(error.response.data.fieldErrors);
-      }
+     if (response.success) {
+       toast.success('Registration successful! Please check your email to verify your account.');
 
-      toast.error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
+       // Clear form
+       setFormData({
+         username: '',
+         email: '',
+         password: '',
+         confirmPassword: ''
+       });
+
+       // Redirect to login with message
+       setTimeout(() => {
+         navigate('/login');
+       }, 2000);
+     }
+   } catch (error) {
+           console.error('Registration error:', error);
+           const errorMessage = error.response?.data?.message || 'Registration failed. Please try again.';
+
+           // Handle field errors
+           if (error.response?.data?.fieldErrors) {
+             setErrors(error.response.data.fieldErrors);
+           }
+
+           toast.error(errorMessage);
+         }
+     finally {
+           setLoading(false);
+         }
+ };
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-500 to-teal-600 p-4">
