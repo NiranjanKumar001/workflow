@@ -197,6 +197,26 @@ function Login() {
               <p className="mt-1 text-sm text-red-600">{errors.password}</p>
             )}
           </div>
+          {/* Add this after the password field, before the submit button */}
+
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="remember"
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor="remember" className="ml-2 block text-sm text-gray-700">
+                Remember me
+              </label>
+            </div>
+            <Link
+              to="/forgot-password"
+              className="text-sm text-blue-600 hover:text-blue-700 font-semibold"
+            >
+              Forgot password?
+            </Link>
+          </div>
 
           {/* Submit Button */}
           <button
