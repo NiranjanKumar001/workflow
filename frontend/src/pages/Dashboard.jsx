@@ -4,6 +4,7 @@ import { authApi } from '../api/authApi';
 import { taskApi } from '../api/taskApi';
 import toast from 'react-hot-toast';
 import Logo from '../assets/logo.png';
+import EmailVerificationBanner from '../components/EmailVerificationBanner';
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -79,51 +80,54 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-100">
+      {/* Email Verification Banner */}
+      <EmailVerificationBanner />
+
       {/* Header */}
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <div>
-              <img
-                    src={Logo}
-                      alt="WorkFlow Logo"
-                      className="h-20 w-auto object-contain -my-4 -ml-1"
-                      style={{ position: 'relative', top: '2px',left:'-22px' }}
-                    />
-{/*             <h1 className="text-2xl font-bold text-gray-900">Work Flow</h1> */}
+            <img
+              src={Logo}
+              alt="WorkFlow Logo"
+              className="h-20 w-auto object-contain -my-4 -ml-1"
+              style={{ position: 'relative', top: '2px', left: '-22px' }}
+            />
             <p className="text-gray-600">Welcome back, {user?.username}!</p>
           </div>
-       <div className="flex gap-4">
-         {/* Show Admin button if user is admin */}
-         {authApi.isAdmin() && (
-           <button
-             onClick={() => navigate('/admin')}
-             className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
-           >
-             Admin Dashboard
-           </button>
-         )}
 
-         <button
-           onClick={() => navigate('/profile')}
-           className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-         >
-           My Profile
-         </button>
+          <div className="flex gap-4">
+            {/* Show Admin button if user is admin */}
+            {authApi.isAdmin() && (
+              <button
+                onClick={() => navigate('/admin')}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+              >
+                Admin Dashboard
+              </button>
+            )}
 
-         <button
-           onClick={() => navigate('/tasks')}
-           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-         >
-           View All Tasks
-         </button>
+            <button
+              onClick={() => navigate('/profile')}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+            >
+              My Profile
+            </button>
 
-         <button
-           onClick={handleLogout}
-           className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-         >
-           Logout
-         </button>
-       </div>
+            <button
+              onClick={() => navigate('/tasks')}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              View All Tasks
+            </button>
+
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+            >
+              Logout
+            </button>
+          </div>
         </div>
       </header>
 
@@ -266,5 +270,4 @@ function Dashboard() {
     </div>
   );
 }
-
 export default Dashboard;
