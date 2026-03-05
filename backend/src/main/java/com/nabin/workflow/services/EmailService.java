@@ -9,8 +9,6 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.thymeleaf.context.Context;
-import org.thymeleaf.spring6.SpringTemplateEngine;
 
 import java.io.UnsupportedEncodingException;
 
@@ -20,7 +18,6 @@ import java.io.UnsupportedEncodingException;
 public class EmailService {
 
     private final JavaMailSender mailSender;
-    private final SpringTemplateEngine templateEngine;
 
     @Value("${app.email.from}")
     private String emailFrom;
@@ -40,19 +37,15 @@ public class EmailService {
             log.info("📧 Sending verification email to: {}", to);
 
             String verificationLink = frontendUrl + "/verify-email?token=" + token;
+            String subject = "Verify Your Email - WorkFlow";
+            String htmlContent = buildVerificationEmailHtml(username, verificationLink);
 
-            Context context = new Context();
-            context.setVariable("username", username);
-            context.setVariable("verificationLink", verificationLink);
-
-            String htmlContent = buildVerificationEmail(username, verificationLink);
-
-            sendEmail(to, "Verify Your Email - WorkFlow", htmlContent);
+            sendHtmlEmail(to, subject, htmlContent);
 
             log.info("✅ Verification email sent successfully to: {}", to);
 
         } catch (Exception e) {
-            log.error("❌ Failed to send verification email to {}: {}", to, e.getMessage());
+            log.error("❌ Failed to send verification email to {}: {}", to, e.getMessage(), e);
         }
     }
 
@@ -65,22 +58,44 @@ public class EmailService {
             log.info("📧 Sending password reset email to: {}", to);
 
             String resetLink = frontendUrl + "/reset-password?token=" + token;
+            String subject = "Reset Your Password - WorkFlow";
+            String htmlContent = buildPasswordResetEmailHtml(username, resetLink);
 
-            String htmlContent = buildPasswordResetEmail(username, resetLink);
-
-            sendEmail(to, "Reset Your Password - WorkFlow", htmlContent);
+            sendHtmlEmail(to, subject, htmlContent);
 
             log.info("✅ Password reset email sent successfully to: {}", to);
 
         } catch (Exception e) {
-            log.error("❌ Failed to send password reset email to {}: {}", to, e.getMessage());
+            log.error("❌ Failed to send password reset email to {}: {}", to, e.getMessage(), e);
         }
     }
 
     /**
-     * Send email
+     * Send welcome email
      */
-    private void sendEmail(String to, String subject, String htmlContent) throws MessagingException, UnsupportedEncodingException {
+    @Async
+    public void sendWelcomeEmail(String to, String username) {
+        try {
+            log.info("📧 Sending welcome email to: {}", to);
+
+            String subject = "Welcome to WorkFlow! 🎉";
+            String htmlContent = buildWelcomeEmailHtml(username);
+
+            sendHtmlEmail(to, subject, htmlContent);
+
+            log.info("✅ Welcome email sent successfully to: {}", to);
+
+        } catch (Exception e) {
+            log.error("❌ Failed to send welcome email to {}: {}", to, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Core method to send HTML email
+     */
+    private void sendHtmlEmail(String to, String subject, String htmlContent)
+            throws MessagingException, UnsupportedEncodingException {
+
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
@@ -91,100 +106,259 @@ public class EmailService {
 
         mailSender.send(message);
     }
-// For user verification with email
+
     /**
      * Build verification email HTML
      */
-    private String buildVerificationEmail(String username, String verificationLink) {
-        return """
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <style>
-                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-                    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-                    .button { display: inline-block; padding: 12px 30px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
-                    .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <div class="header">
-                        <h1>Welcome to WorkFlow!</h1>
-                    </div>
-                    <div class="content">
-                        <h2>Hi %s,</h2>
-                        <p>Thank you for registering with WorkFlow! We're excited to have you on board.</p>
-                        <p>To complete your registration and activate your account, please verify your email address by clicking the button below:</p>
-                        <div style="text-align: center;">
-                            <a href="%s" class="button">Verify Email Address</a>
-                        </div>
-                        <p>Or copy and paste this link into your browser:</p>
-                        <p style="word-break: break-all; color: #667eea;">%s</p>
-                        <p><strong>This link will expire in 24 hours.</strong></p>
-                        <p>If you didn't create an account with WorkFlow, you can safely ignore this email.</p>
-                        <p>Best regards,<br>The WorkFlow Team</p>
-                    </div>
-                    <div class="footer">
-                        <p>© 2026 WorkFlow. All rights reserved.</p>
-                    </div>
-                </div>
-            </body>
-            </html>
-            """.formatted(username, verificationLink, verificationLink);
+    private String buildVerificationEmailHtml(String username, String verificationLink) {
+        String html = "<!DOCTYPE html>" +
+                "<html lang=\"en\">" +
+                "<head>" +
+                "    <meta charset=\"UTF-8\">" +
+                "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">" +
+                "    <title>Verify Your Email</title>" +
+                "</head>" +
+                "<body style=\"margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;\">" +
+                "    <table role=\"presentation\" style=\"width: 100%; border-collapse: collapse;\">" +
+                "        <tr>" +
+                "            <td align=\"center\" style=\"padding: 40px 0;\">" +
+                "                <table role=\"presentation\" style=\"width: 600px; border-collapse: collapse; background-color: #ffffff; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);\">" +
+                "                    <!-- Header -->" +
+                "                    <tr>" +
+                "                        <td style=\"background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px; text-align: center;\">" +
+                "                            <h1 style=\"color: #ffffff; margin: 0; font-size: 28px;\">Welcome to WorkFlow!</h1>" +
+                "                            <p style=\"color: #ffffff; margin: 10px 0 0 0; font-size: 16px;\">Task Management Made Easy</p>" +
+                "                        </td>" +
+                "                    </tr>" +
+                "                    <!-- Content -->" +
+                "                    <tr>" +
+                "                        <td style=\"padding: 40px 30px; background-color: #f9f9f9;\">" +
+                "                            <h2 style=\"color: #333333; margin: 0 0 20px 0; font-size: 24px;\">Hi {{USERNAME}}! 👋</h2>" +
+                "                            <p style=\"color: #555555; line-height: 1.6; margin: 0 0 20px 0; font-size: 16px;\">" +
+                "                                Thank you for registering with WorkFlow! We're excited to have you on board." +
+                "                            </p>" +
+                "                            <p style=\"color: #555555; line-height: 1.6; margin: 0 0 30px 0; font-size: 16px;\">" +
+                "                                To complete your registration and activate your account, please verify your email address by clicking the button below:" +
+                "                            </p>" +
+                "                            <!-- Button -->" +
+                "                            <table role=\"presentation\" style=\"width: 100%; border-collapse: collapse;\">" +
+                "                                <tr>" +
+                "                                    <td align=\"center\" style=\"padding: 0;\">" +
+                "                                        <a href=\"{{LINK}}\"" +
+                "                                           style=\"display: inline-block; padding: 16px 40px; background-color: #667eea; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;\">" +
+                "                                            Verify Email Address" +
+                "                                        </a>" +
+                "                                    </td>" +
+                "                                </tr>" +
+                "                            </table>" +
+                "                            <p style=\"color: #555555; line-height: 1.6; margin: 30px 0 10px 0; font-size: 14px;\">" +
+                "                                Or copy and paste this link into your browser:" +
+                "                            </p>" +
+                "                            <p style=\"color: #667eea; word-break: break-all; margin: 0 0 20px 0; font-size: 12px;\">" +
+                "                                {{LINK}}" +
+                "                            </p>" +
+                "                            <div style=\"background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0;\">" +
+                "                                <p style=\"color: #856404; margin: 0; font-size: 14px;\">" +
+                "                                    <strong>⏰ Important:</strong> This link will expire in 24 hours." +
+                "                                </p>" +
+                "                            </div>" +
+                "                            <p style=\"color: #555555; line-height: 1.6; margin: 20px 0 0 0; font-size: 14px;\">" +
+                "                                If you didn't create an account with WorkFlow, you can safely ignore this email." +
+                "                            </p>" +
+                "                            <p style=\"color: #555555; line-height: 1.6; margin: 30px 0 0 0; font-size: 16px;\">" +
+                "                                Best regards,<br>" +
+                "                                <strong>The WorkFlow Team</strong>" +
+                "                            </p>" +
+                "                        </td>" +
+                "                    </tr>" +
+                "                    <!-- Footer -->" +
+                "                    <tr>" +
+                "                        <td style=\"background-color: #333333; padding: 20px; text-align: center;\">" +
+                "                            <p style=\"color: #ffffff; margin: 0; font-size: 12px;\">" +
+                "                                © 2026 WorkFlow. All rights reserved." +
+                "                            </p>" +
+                "                            <p style=\"color: #999999; margin: 10px 0 0 0; font-size: 12px;\">" +
+                "                                This email was sent to you because you registered on WorkFlow." +
+                "                            </p>" +
+                "                        </td>" +
+                "                    </tr>" +
+                "                </table>" +
+                "            </td>" +
+                "        </tr>" +
+                "    </table>" +
+                "</body>" +
+                "</html>";
+
+        return html
+                .replace("{{USERNAME}}", username)
+                .replace("{{LINK}}", verificationLink);
     }
 
     /**
      * Build password reset email HTML
      */
-    private String buildPasswordResetEmail(String username, String resetLink) {
-        return """
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <style>
-                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                    .header { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-                    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-                    .button { display: inline-block; padding: 12px 30px; background: #f5576c; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
-                    .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; }
-                    .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <div class="header">
-                        <h1>Password Reset Request</h1>
-                    </div>
-                    <div class="content">
-                        <h2>Hi %s,</h2>
-                        <p>We received a request to reset your password for your WorkFlow account.</p>
-                        <p>Click the button below to reset your password:</p>
-                        <div style="text-align: center;">
-                            <a href="%s" class="button">Reset Password</a>
-                        </div>
-                        <p>Or copy and paste this link into your browser:</p>
-                        <p style="word-break: break-all; color: #f5576c;">%s</p>
-                        <div class="warning">
-                            <p><strong>⚠️ Important:</strong></p>
-                            <ul>
-                                <li>This link will expire in 1 hour</li>
-                                <li>For security, this link can only be used once</li>
-                                <li>If you didn't request this, please ignore this email</li>
-                            </ul>
-                        </div>
-                        <p>If you didn't request a password reset, your account is still secure and no changes have been made.</p>
-                        <p>Best regards,<br>The WorkFlow Team</p>
-                    </div>
-                    <div class="footer">
-                        <p>© 2026 WorkFlow. All rights reserved.</p>
-                    </div>
-                </div>
-            </body>
-            </html>
-            """.formatted(username, resetLink, resetLink);
+    private String buildPasswordResetEmailHtml(String username, String resetLink) {
+        String html = "<!DOCTYPE html>" +
+                "<html lang=\"en\">" +
+                "<head>" +
+                "    <meta charset=\"UTF-8\">" +
+                "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">" +
+                "    <title>Reset Your Password</title>" +
+                "</head>" +
+                "<body style=\"margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;\">" +
+                "    <table role=\"presentation\" style=\"width: 100%; border-collapse: collapse;\">" +
+                "        <tr>" +
+                "            <td align=\"center\" style=\"padding: 40px 0;\">" +
+                "                <table role=\"presentation\" style=\"width: 600px; border-collapse: collapse; background-color: #ffffff; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);\">" +
+                "                    <!-- Header -->" +
+                "                    <tr>" +
+                "                        <td style=\"background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 40px; text-align: center;\">" +
+                "                            <h1 style=\"color: #ffffff; margin: 0; font-size: 28px;\">Password Reset Request</h1>" +
+                "                            <p style=\"color: #ffffff; margin: 10px 0 0 0; font-size: 16px;\">WorkFlow Account Security</p>" +
+                "                        </td>" +
+                "                    </tr>" +
+                "                    <!-- Content -->" +
+                "                    <tr>" +
+                "                        <td style=\"padding: 40px 30px; background-color: #f9f9f9;\">" +
+                "                            <h2 style=\"color: #333333; margin: 0 0 20px 0; font-size: 24px;\">Hi {{USERNAME}}! 🔒</h2>" +
+                "                            <p style=\"color: #555555; line-height: 1.6; margin: 0 0 20px 0; font-size: 16px;\">" +
+                "                                We received a request to reset your password for your WorkFlow account." +
+                "                            </p>" +
+                "                            <p style=\"color: #555555; line-height: 1.6; margin: 0 0 30px 0; font-size: 16px;\">" +
+                "                                Click the button below to reset your password:" +
+                "                            </p>" +
+                "                            <!-- Button -->" +
+                "                            <table role=\"presentation\" style=\"width: 100%; border-collapse: collapse;\">" +
+                "                                <tr>" +
+                "                                    <td align=\"center\" style=\"padding: 0;\">" +
+                "                                        <a href=\"{{LINK}}\"" +
+                "                                           style=\"display: inline-block; padding: 16px 40px; background-color: #f5576c; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;\">" +
+                "                                            Reset Password" +
+                "                                        </a>" +
+                "                                    </td>" +
+                "                                </tr>" +
+                "                            </table>" +
+                "                            <p style=\"color: #555555; line-height: 1.6; margin: 30px 0 10px 0; font-size: 14px;\">" +
+                "                                Or copy and paste this link into your browser:" +
+                "                            </p>" +
+                "                            <p style=\"color: #f5576c; word-break: break-all; margin: 0 0 20px 0; font-size: 12px;\">" +
+                "                                {{LINK}}" +
+                "                            </p>" +
+                "                            <!-- Warning Box -->" +
+                "                            <div style=\"background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0;\">" +
+                "                                <p style=\"color: #856404; margin: 0 0 10px 0; font-size: 14px; font-weight: bold;\">" +
+                "                                    ⚠️ Important Security Information:" +
+                "                                </p>" +
+                "                                <ul style=\"color: #856404; margin: 0; padding-left: 20px; font-size: 14px;\">" +
+                "                                    <li>This link will expire in 1 hour</li>" +
+                "                                    <li>For security, this link can only be used once</li>" +
+                "                                    <li>If you didn't request this, please ignore this email</li>" +
+                "                                </ul>" +
+                "                            </div>" +
+                "                            <p style=\"color: #555555; line-height: 1.6; margin: 20px 0 0 0; font-size: 14px;\">" +
+                "                                If you didn't request a password reset, your account is still secure and no changes have been made." +
+                "                            </p>" +
+                "                            <p style=\"color: #555555; line-height: 1.6; margin: 30px 0 0 0; font-size: 16px;\">" +
+                "                                Best regards,<br>" +
+                "                                <strong>The WorkFlow Team</strong>" +
+                "                            </p>" +
+                "                        </td>" +
+                "                    </tr>" +
+                "                    <!-- Footer -->" +
+                "                    <tr>" +
+                "                        <td style=\"background-color: #333333; padding: 20px; text-align: center;\">" +
+                "                            <p style=\"color: #ffffff; margin: 0; font-size: 12px;\">" +
+                "                                © 2026 WorkFlow. All rights reserved." +
+                "                            </p>" +
+                "                            <p style=\"color: #999999; margin: 10px 0 0 0; font-size: 12px;\">" +
+                "                                This email was sent because a password reset was requested for your account." +
+                "                            </p>" +
+                "                        </td>" +
+                "                    </tr>" +
+                "                </table>" +
+                "            </td>" +
+                "        </tr>" +
+                "    </table>" +
+                "</body>" +
+                "</html>";
+
+        return html
+                .replace("{{USERNAME}}", username)
+                .replace("{{LINK}}", resetLink);
+    }
+
+    /**
+     * Build welcome email HTML
+     */
+    private String buildWelcomeEmailHtml(String username) {
+        String html = "<!DOCTYPE html>" +
+                "<html lang=\"en\">" +
+                "<head>" +
+                "    <meta charset=\"UTF-8\">" +
+                "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">" +
+                "    <title>Welcome to WorkFlow</title>" +
+                "</head>" +
+                "<body style=\"margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;\">" +
+                "    <table role=\"presentation\" style=\"width: 100%; border-collapse: collapse;\">" +
+                "        <tr>" +
+                "            <td align=\"center\" style=\"padding: 40px 0;\">" +
+                "                <table role=\"presentation\" style=\"width: 600px; border-collapse: collapse; background-color: #ffffff; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);\">" +
+                "                    <!-- Header -->" +
+                "                    <tr>" +
+                "                        <td style=\"background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px; text-align: center;\">" +
+                "                            <h1 style=\"color: #ffffff; margin: 0; font-size: 32px;\">Welcome to WorkFlow! 🎉</h1>" +
+                "                        </td>" +
+                "                    </tr>" +
+                "                    <!-- Content -->" +
+                "                    <tr>" +
+                "                        <td style=\"padding: 40px 30px; background-color: #f9f9f9;\">" +
+                "                            <h2 style=\"color: #333333; margin: 0 0 20px 0; font-size: 24px;\">Hi {{USERNAME}}!</h2>" +
+                "                            <p style=\"color: #555555; line-height: 1.6; margin: 0 0 20px 0; font-size: 16px;\">" +
+                "                                Your email has been verified successfully! Welcome to WorkFlow - your personal task management companion." +
+                "                            </p>" +
+                "                            <h3 style=\"color: #333333; margin: 30px 0 15px 0; font-size: 18px;\">🚀 Get Started:</h3>" +
+                "                            <ul style=\"color: #555555; line-height: 1.8; margin: 0 0 20px 0; padding-left: 20px; font-size: 15px;\">" +
+                "                                <li>Create your first task and stay organized</li>" +
+                "                                <li>Set up categories to group your tasks</li>" +
+                "                                <li>Set priorities and due dates to stay on track</li>" +
+                "                                <li>Track your progress with our dashboard</li>" +
+                "                            </ul>" +
+                "                            <table role=\"presentation\" style=\"width: 100%; border-collapse: collapse; margin: 30px 0;\">" +
+                "                                <tr>" +
+                "                                    <td align=\"center\" style=\"padding: 0;\">" +
+                "                                        <a href=\"{{FRONTEND_URL}}/login\"" +
+                "                                           style=\"display: inline-block; padding: 16px 40px; background-color: #667eea; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;\">" +
+                "                                            Start Using WorkFlow" +
+                "                                        </a>" +
+                "                                    </td>" +
+                "                                </tr>" +
+                "                            </table>" +
+                "                            <p style=\"color: #555555; line-height: 1.6; margin: 20px 0 0 0; font-size: 14px;\">" +
+                "                                If you have any questions or need help getting started, feel free to reply to this email." +
+                "                            </p>" +
+                "                            <p style=\"color: #555555; line-height: 1.6; margin: 30px 0 0 0; font-size: 16px;\">" +
+                "                                Happy task managing!<br>" +
+                "                                <strong>The WorkFlow Team</strong>" +
+                "                            </p>" +
+                "                        </td>" +
+                "                    </tr>" +
+                "                    <!-- Footer -->" +
+                "                    <tr>" +
+                "                        <td style=\"background-color: #333333; padding: 20px; text-align: center;\">" +
+                "                            <p style=\"color: #ffffff; margin: 0; font-size: 12px;\">" +
+                "                                © 2026 WorkFlow. All rights reserved." +
+                "                            </p>" +
+                "                        </td>" +
+                "                    </tr>" +
+                "                </table>" +
+                "            </td>" +
+                "        </tr>" +
+                "    </table>" +
+                "</body>" +
+                "</html>";
+
+        return html
+                .replace("{{USERNAME}}", username)
+                .replace("{{FRONTEND_URL}}", frontendUrl);
     }
 }
