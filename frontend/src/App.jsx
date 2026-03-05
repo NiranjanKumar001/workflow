@@ -11,6 +11,11 @@ import AdminDashboard from './pages/AdminDashboard';
 import UserDetails from './pages/UserDetails';
 import { authApi } from './api/authApi.js';
 import UserProfile from './pages/UserProfile';
+import VerifyEmail from './pages/VerifyEmail';
+import ResendVerification from './pages/ResendVerification';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -38,12 +43,23 @@ function App() {
     <>
       <Router>
         <Routes>
+             {/* Public Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
+
+          {/* Email Verification Routes */}
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/resend-verification" element={<ResendVerification />} />
+
+          {/* Password Reset Routes */}
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/tasks" element={<ProtectedRoute><TasksPage /></ProtectedRoute>} />
-          <Route path="/" element={<Navigate to="/dashboard" />} />
+
+
           <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>}/>
 
   {/* Admin Routes */}
@@ -64,9 +80,12 @@ function App() {
             </AdminRoute>
           }
         />
+          <Route path="/" element={<Navigate to="/dashboard" />} />
 
         </Routes>
+
       </Router>
+
       <Toaster position="top-right" />
     </>
   );
