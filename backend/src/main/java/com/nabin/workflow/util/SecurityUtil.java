@@ -21,10 +21,25 @@ public class SecurityUtil {
 
         Object principal = authentication.getPrincipal();
 
-        if (principal instanceof UserPrincipal) {
-            return (UserPrincipal) principal;
+        // Normal JWT login
+        if (principal instanceof UserPrincipal userPrincipal) {
+            return userPrincipal;
         }
-        throw new UnauthorizedException("Invalid authentication principal");
+
+        // Google OAuth2 login — principal is OAuth2User
+        // The name/subject is the user's DB id set during OAuth2UserService
+        if (principal instanceof org.springframework.security.oauth2.core.user.OAuth2User oauth2User) {
+            Object id = oauth2User.getAttribute("id"); // ← depends on what your OAuth2UserService sets
+            if (id != null) {
+                // Re-wrap in UserPrincipal or just throw a helpful error
+                throw new UnauthorizedException(
+                        "OAuth2 principal not mapped to UserPrincipal. Fix OAuth2UserService to return UserPrincipal."
+                );
+            }
+        }
+
+        throw new UnauthorizedException("Invalid authentication principal type: "
+                + principal.getClass().getName()); // ← now you'll see exact type in logs
     }
 
     /**
