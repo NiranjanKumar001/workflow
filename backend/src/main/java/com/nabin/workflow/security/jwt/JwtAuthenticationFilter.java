@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -59,9 +60,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 log.debug("Set authentication for user: {}", email);
             }
-        } catch (Exception ex) {
-            log.error("Could not set user authentication in security context", ex);
         }
+    catch (UsernameNotFoundException ex) {
+        log.error("User not found during JWT authentication: {}", ex.getMessage());
+    } catch (Exception ex) {
+        log.error("JWT authentication failed [{}]: {}", ex.getClass().getSimpleName(), ex.getMessage());
+    }
 
         filterChain.doFilter(request, response);
     }
