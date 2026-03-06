@@ -1,230 +1,200 @@
 package com.nabin.workflow.controller;
 
 import com.nabin.workflow.dto.common.ApiResponse;
-import com.nabin.workflow.dto.common.PageMetadata;
+import com.nabin.workflow.dto.request.TaskFilterDTO;
 import com.nabin.workflow.dto.request.TaskRequestDTO;
+import com.nabin.workflow.dto.request.TaskUpdateDTO;
 import com.nabin.workflow.dto.response.TaskResponseDTO;
-import com.nabin.workflow.entities.TaskPriority;
+import com.nabin.workflow.dto.response.TaskStatsDTO;
 import com.nabin.workflow.entities.TaskStatus;
-import com.nabin.workflow.util.SecurityUtil;
 import com.nabin.workflow.services.interfaces.TaskService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/tasks")
 @RequiredArgsConstructor
+@Slf4j
 public class TaskController {
 
     private final TaskService taskService;
 
-    /**
-     * Create a new task
-     * Gets userId from JWT token automatically
-     * POST /api/tasks
-     */
+    // -------------------------------------------------------
+    // POST /api/tasks — Create task
+    // FIX: was TaskRequestDTO, now TaskCreateDTO
+    // -------------------------------------------------------
     @PostMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<TaskResponseDTO>> createTask(
-            @Valid @RequestBody TaskRequestDTO taskRequestDTO) {
+            @Valid @RequestBody TaskRequestDTO taskDTO) {
 
-        // Get userId from JWT token
-        Long userId = SecurityUtil.getCurrentUserId();
-        TaskResponseDTO task = taskService.createTask(userId, taskRequestDTO);
-
-        ApiResponse<TaskResponseDTO> response = ApiResponse.success(
-                "Task created successfully",
-                task
+        log.info("Creating new task: {}", taskDTO.getTitle());
+        TaskResponseDTO task = taskService.createTask(taskDTO);
+        return new ResponseEntity<>(
+                ApiResponse.success("Task created successfully", task),
+                HttpStatus.CREATED
         );
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    /**
-     * Get a specific task by ID
-     * GET /api/tasks/{taskId}
-     */
-    @GetMapping("/{taskId}")
-    public ResponseEntity<ApiResponse<TaskResponseDTO>> getTaskById(
-            @PathVariable Long taskId) {
-
-        // Get userId from JWT token
-        Long userId = SecurityUtil.getCurrentUserId();
-        TaskResponseDTO task = taskService.getTaskById(userId, taskId);
-
-        ApiResponse<TaskResponseDTO> response = ApiResponse.success(
-                "Task retrieved successfully",
-                task
+    // -------------------------------------------------------
+    // GET /api/tasks/stats — Task statistics
+    // FIX: this endpoint was missing — caused "Failed to load dashboard data"
+    // Must be declared BEFORE /{id} to avoid path ambiguity
+    // -------------------------------------------------------
+    @GetMapping("/stats")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<TaskStatsDTO>> getTaskStats() {
+        log.info("Fetching task stats for current user");
+        TaskStatsDTO stats = taskService.getTaskStats();
+        return ResponseEntity.ok(
+                ApiResponse.success("Task stats retrieved successfully", stats)
         );
-
-        return ResponseEntity.ok(response);
     }
 
-    /**
-     * Get all tasks for current user
-     * GET /api/tasks
-     */
+    // -------------------------------------------------------
+    // GET /api/tasks — Get all tasks
+    // -------------------------------------------------------
     @GetMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<TaskResponseDTO>>> getAllTasks() {
-
-        // Get userId from JWT token
-        Long userId = SecurityUtil.getCurrentUserId();
-        List<TaskResponseDTO> tasks = taskService.getAllTasksByUserId(userId);
-
-        ApiResponse<List<TaskResponseDTO>> response = ApiResponse.success(
-                String.format("Retrieved %d tasks", tasks.size()),
-                tasks
+        log.info("Fetching all tasks for current user");
+        List<TaskResponseDTO> tasks = taskService.getAllTasksForCurrentUser();
+        return ResponseEntity.ok(
+                ApiResponse.success("Tasks retrieved successfully", tasks)
         );
-
-        return ResponseEntity.ok(response);
     }
 
-    /**
-     * Get tasks with advanced filtering and pagination
-     * GET /api/tasks/filter?status=TODO&page=0&size=10
-     */
-    @GetMapping("/filter")
-    public ResponseEntity<ApiResponse<List<TaskResponseDTO>>> getTasksWithFilters(
-            @RequestParam(required = false) TaskStatus status,
-            @RequestParam(required = false) TaskPriority priority,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dueDateFrom,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dueDateTo,
-            @RequestParam(required = false) String search,
-            Pageable pageable // <- Spring will parse page, size, sort automatically
-    )
-    {
-        Long userId = SecurityUtil.getCurrentUserId();
-        Page<TaskResponseDTO> taskPage = taskService.getTasksWithFilters(
-                userId, status, priority, dueDateFrom, dueDateTo, search, pageable);
-
-        PageMetadata metadata = PageMetadata.from(taskPage);
-
-        ApiResponse<List<TaskResponseDTO>> response = ApiResponse.success(
-                String.format("Retrieved %d tasks (page %d of %d)",
-                        taskPage.getNumberOfElements(),
-                        taskPage.getNumber() + 1,
-                        taskPage.getTotalPages()),
-                taskPage.getContent(),
-                metadata
+    // -------------------------------------------------------
+    // GET /api/tasks/{id} — Get task by ID
+    // -------------------------------------------------------
+    @GetMapping("/{id:\\d+}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<TaskResponseDTO>> getTaskById(@PathVariable Long id) {
+        log.info("Fetching task: {}", id);
+        TaskResponseDTO task = taskService.getTaskById(id);
+        return ResponseEntity.ok(
+                ApiResponse.success("Task retrieved successfully", task)
         );
-        return ResponseEntity.ok(response);
     }
 
-    /**
-     * Update an existing task
-     * PUT /api/tasks/{taskId}
-     */
-    @PutMapping("/{taskId}")
-    public ResponseEntity<ApiResponse<TaskResponseDTO>> updateTask(
-            @PathVariable Long taskId,
-            @Valid @RequestBody TaskRequestDTO taskRequestDTO) {
-
-        // Get userId from JWT token
-        Long userId = SecurityUtil.getCurrentUserId();
-        TaskResponseDTO task = taskService.updateTask(userId, taskId, taskRequestDTO);
-
-        ApiResponse<TaskResponseDTO> response = ApiResponse.success(
-                "Task updated successfully",
-                task
+    // -------------------------------------------------------
+    // GET /api/tasks/status/{status} — Get tasks by status
+    // -------------------------------------------------------
+    @GetMapping("/status/{status}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<List<TaskResponseDTO>>> getTasksByStatus(
+            @PathVariable TaskStatus status) {
+        log.info("Fetching tasks with status: {}", status);
+        List<TaskResponseDTO> tasks = taskService.getTasksByStatus(status);
+        return ResponseEntity.ok(
+                ApiResponse.success("Tasks retrieved successfully", tasks)
         );
-
-        return ResponseEntity.ok(response);
     }
 
-    /**
-     * Delete a task
-     * DELETE /api/tasks/{taskId}
-     */
-    @DeleteMapping("/{taskId}")
-    public ResponseEntity<ApiResponse<Void>> deleteTask(@PathVariable Long taskId) {
-
-        // Get userId from JWT token
-        Long userId = SecurityUtil.getCurrentUserId();
-        taskService.deleteTask(userId, taskId);
-
-        ApiResponse<Void> response = ApiResponse.success("Task deleted successfully");
-
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Get overdue tasks
-     * GET /api/tasks/overdue
-     */
+    // -------------------------------------------------------
+    // GET /api/tasks/overdue — Get overdue tasks
+    // Must be declared BEFORE /{id} to avoid path ambiguity
+    // -------------------------------------------------------
     @GetMapping("/overdue")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<TaskResponseDTO>>> getOverdueTasks() {
-
-        // Get userId from JWT token
-        Long userId = SecurityUtil.getCurrentUserId();
-
-        List<TaskResponseDTO> tasks = taskService.getOverdueTasks(userId);
-        ApiResponse<List<TaskResponseDTO>> response = ApiResponse.success(
-                String.format("Found %d overdue tasks", tasks.size()),
-                tasks
+        log.info("Fetching overdue tasks");
+        List<TaskResponseDTO> tasks = taskService.getOverdueTasks();
+        return ResponseEntity.ok(
+                ApiResponse.success("Overdue tasks retrieved successfully", tasks)
         );
-
-        return ResponseEntity.ok(response);
     }
 
-    /**
-     * Get tasks due soon
-     * GET /api/tasks/due-soon?days=7
-     */
+    // -------------------------------------------------------
+    // GET /api/tasks/overdue/count — Count overdue tasks
+    // -------------------------------------------------------
+    @GetMapping("/overdue/count")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Long>> countOverdueTasks() {
+        log.info("Counting overdue tasks");
+        Long count = taskService.countOverdueTasks();
+        return ResponseEntity.ok(
+                ApiResponse.success("Overdue task count retrieved successfully", count)
+        );
+    }
+
+    // -------------------------------------------------------
+    // GET /api/tasks/due-soon?days=7 — Get tasks due soon
+    // -------------------------------------------------------
     @GetMapping("/due-soon")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<TaskResponseDTO>>> getTasksDueSoon(
             @RequestParam(defaultValue = "7") int days) {
-
-        // Get userId from JWT token
-        Long userId = SecurityUtil.getCurrentUserId();
-        List<TaskResponseDTO> tasks = taskService.getTasksDueSoon(userId, days);
-
-        ApiResponse<List<TaskResponseDTO>> response = ApiResponse.success(
-                String.format("Found %d tasks due in next %d days", tasks.size(), days),
-                tasks
+        log.info("Fetching tasks due within {} days", days);
+        List<TaskResponseDTO> tasks = taskService.getTasksDueSoon(days);
+        return ResponseEntity.ok(
+                ApiResponse.success("Tasks due soon retrieved successfully", tasks)
         );
-
-        return ResponseEntity.ok(response);
     }
 
-    /**
-     * Get task statistics
-     * GET /api/tasks/stats
-     */
-    @GetMapping("/stats")
-    public ResponseEntity<ApiResponse<TaskStatsDTO>> getTaskStats() {
-
-        // Get userId from JWT token
-        Long userId = SecurityUtil.getCurrentUserId();
-        long totalTasks = taskService.getAllTasksByUserId(userId).size();
-        long todoCount = taskService.getTasksByStatus(userId, TaskStatus.TODO).size();
-        long inProgressCount = taskService.getTasksByStatus(userId, TaskStatus.IN_PROGRESS).size();
-        long doneCount = taskService.getTasksByStatus(userId, TaskStatus.DONE).size();
-        long overdueCount = taskService.getOverdueTasks(userId).size();
-
-        TaskStatsDTO stats = new TaskStatsDTO(
-                totalTasks, todoCount, inProgressCount, doneCount, overdueCount);
-
-        ApiResponse<TaskStatsDTO> response = ApiResponse.success(
-                "Task statistics retrieved successfully",
-                stats
+    // -------------------------------------------------------
+    // PUT /api/tasks/{id} — Full update
+    // -------------------------------------------------------
+    @PutMapping("/{id:\\d+}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<TaskResponseDTO>> updateTask(
+            @PathVariable Long id,
+            @Valid @RequestBody TaskUpdateDTO taskDTO) {
+        log.info("Updating task: {}", id);
+        TaskResponseDTO task = taskService.updateTask(id, taskDTO);
+        return ResponseEntity.ok(
+                ApiResponse.success("Task updated successfully", task)
         );
-
-        return ResponseEntity.ok(response);
     }
 
-    public record TaskStatsDTO(
-            long totalTasks,
-            long todoTasks,
-            long inProgressTasks,
-            long doneTasks,
-            long overdueTasks
-    ) {}
+    // -------------------------------------------------------
+    // PATCH /api/tasks/{id}/status — Status-only update
+    // -------------------------------------------------------
+    @PatchMapping("/{id:\\d+}/status")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<TaskResponseDTO>> updateTaskStatus(
+            @PathVariable Long id,
+            @RequestParam TaskStatus status) {
+        log.info("Updating task {} status to: {}", id, status);
+        TaskResponseDTO task = taskService.updateTaskStatus(id, status);
+        return ResponseEntity.ok(
+                ApiResponse.success("Task status updated successfully", task)
+        );
+    }
+
+    // -------------------------------------------------------
+    // DELETE /api/tasks/{id} — Delete task
+    // -------------------------------------------------------
+    @DeleteMapping("/{id:\\d+}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Void>> deleteTask(@PathVariable Long id) {
+        log.info("Deleting task: {}", id);
+        taskService.deleteTask(id);
+        return ResponseEntity.ok(
+                ApiResponse.success("Task deleted successfully")
+        );
+    }
+
+    // -------------------------------------------------------
+    // POST /api/tasks/filter — Filter with pagination
+    // POST (not GET) because FilterDTO is sent as request body
+    // -------------------------------------------------------
+    @PostMapping("/filter")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Page<TaskResponseDTO>>> filterTasks(
+            @RequestBody TaskFilterDTO filterDTO) {
+        log.info("Filtering tasks with criteria: {}", filterDTO);
+        Page<TaskResponseDTO> tasks = taskService.filterTasks(filterDTO);
+        return ResponseEntity.ok(
+                ApiResponse.success("Tasks filtered successfully", tasks)
+        );
+    }
 }
