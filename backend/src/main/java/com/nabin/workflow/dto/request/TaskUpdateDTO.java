@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.Set;
 
 @Data
 @NoArgsConstructor
@@ -25,6 +26,6 @@ public class TaskUpdateDTO {
     private TaskPriority priority;
 
     private LocalDate dueDate;
-
-    private Long categoryId;
+    
+    private Set<Long> categoryIds;
 }
