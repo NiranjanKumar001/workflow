@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Data
 @Builder
@@ -24,13 +25,14 @@ public class TaskResponseDTO {
     private Boolean overdue;
     private Long userId;
     private String username;
-    private Long categoryId;
-    private String categoryName;
+
+    // Multiple categories
+    private Set<CategoryResponseDTO> categories;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime completedAt;
 
-    // Helper method to get days until due
     public Integer getDaysUntilDue() {
         if (dueDate == null) return null;
         return (int) java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), dueDate);
