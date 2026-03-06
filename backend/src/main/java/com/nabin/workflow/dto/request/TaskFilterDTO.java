@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.Set;
 
 @Data
 @Builder
@@ -16,10 +17,15 @@ import java.time.LocalDate;
 public class TaskFilterDTO {
     private TaskStatus status;
     private TaskPriority priority;
-    private Long categoryId;
+
+    // Multiple category IDs (filter by ANY of these)
+    private Set<Long> categoryIds;
+
     private Boolean overdue;
     private LocalDate dueDateFrom;
     private LocalDate dueDateTo;
+
+    // Search query (searches in title AND description)
     private String searchQuery;
 
     // Pagination
