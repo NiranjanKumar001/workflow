@@ -17,7 +17,6 @@ function Dashboard() {
     loadDashboard();
   }, []);
 
-  // FIX: Split into separate functions so one failure doesn't kill everything
   const loadDashboard = async () => {
     const currentUser = authApi.getCurrentUser();
     if (!currentUser) {
@@ -25,7 +24,7 @@ function Dashboard() {
       return;
     }
     setUser(currentUser);
-    setLoading(false); // FIX: Show UI immediately, load data in background
+    setLoading(false);
 
     await Promise.allSettled([loadStats(), loadRecentTasks()]);
   };
@@ -38,13 +37,11 @@ function Dashboard() {
       }
     } catch (err) {
       console.error('Stats error:', err);
-      // Silent fail — stat cards show 0s via || 0 fallbacks in JSX
     }
   };
 
   const loadRecentTasks = async () => {
     try {
-      // FIX: sortBy + sortDirection as separate fields to match TaskFilterDTO
       const res = await taskApi.filterTasks({
         page: 0,
         size: 5,
@@ -52,7 +49,6 @@ function Dashboard() {
         sortDirection: 'DESC'
       });
       if (res.success) {
-        // FIX: Page object returns items inside .content
         setRecentTasks(res.data.content ?? []);
       }
     } catch (err) {
@@ -102,6 +98,7 @@ function Dashboard() {
           </div>
 
           <div className="flex gap-4">
+            {/* Admin Dashboard Button */}
             {authApi.isAdmin() && (
               <button
                 onClick={() => navigate('/admin')}
@@ -110,18 +107,32 @@ function Dashboard() {
                 Admin Dashboard
               </button>
             )}
+
+            {/* Statistics Button */}
+            <button
+              onClick={() => navigate('/statistics')}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+            >
+              📊 Statistics
+            </button>
+
+            {/* My Profile Button */}
             <button
               onClick={() => navigate('/profile')}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
             >
               My Profile
             </button>
+
+            {/* View All Tasks Button */}
             <button
               onClick={() => navigate('/tasks')}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
             >
               View All Tasks
             </button>
+
+            {/* Logout Button */}
             <button
               onClick={handleLogout}
               className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
@@ -134,10 +145,8 @@ function Dashboard() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-
           {/* Total Tasks */}
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center justify-between">
@@ -188,7 +197,7 @@ function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-500 text-sm">Completed</p>
-                <p className="text-3xl font-bold text-green-600">{stats?.doneTasks || 0}</p>
+                <p className="text-3xl font-bold text-green-600">{stats?.completedTasks || 0}</p>
               </div>
               <div className="bg-green-100 rounded-full p-3">
                 <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -270,7 +279,6 @@ function Dashboard() {
             )}
           </div>
         </div>
-
       </main>
     </div>
   );
