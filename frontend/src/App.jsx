@@ -15,6 +15,7 @@ import VerifyEmail from './pages/VerifyEmail';
 import ResendVerification from './pages/ResendVerification';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import Tasks from './pages/Tasks';
 
 
 const ProtectedRoute = ({ children }) => {
@@ -61,6 +62,14 @@ function App() {
 
 
           <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>}/>
+          <Route
+            path="/tasks"
+            element={
+              <ProtectedRoute>
+                <Tasks />
+              </ProtectedRoute>
+            }
+          />
 
   {/* Admin Routes */}
         <Route
