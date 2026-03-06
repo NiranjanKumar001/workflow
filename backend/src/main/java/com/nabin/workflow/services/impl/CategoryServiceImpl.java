@@ -1,6 +1,7 @@
 package com.nabin.workflow.services.impl;
 
 import com.nabin.workflow.dto.request.CategoryRequestDTO;
+import com.nabin.workflow.dto.response.CategoryResponseDTO;
 import com.nabin.workflow.entities.Category;
 import com.nabin.workflow.entities.User;
 import com.nabin.workflow.exception.ResourceNotFoundException;
@@ -31,7 +32,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @PreAuthorize("isAuthenticated()")
-    public CategoryRequestDTO createCategory(Long userId, CategoryRequestDTO categoryDTO) {
+    public CategoryResponseDTO createCategory(Long userId, CategoryRequestDTO categoryDTO) {
         validateUserOwnership(userId);
 
         User user = userRepository.findById(userId)
@@ -46,25 +47,25 @@ public class CategoryServiceImpl implements CategoryService {
         Category savedCategory = categoryRepository.save(category);
         log.info("Category created: {} by user: {}", savedCategory.getId(), userId);
 
-        return dtoMapper.toCategoryDTO(savedCategory);
+        return dtoMapper.toCategoryResponseDTO(savedCategory);
     }
 
     @Override
     @Transactional(readOnly = true)
     @PreAuthorize("isAuthenticated()")
-    public CategoryRequestDTO  getCategoryById(Long userId, Long categoryId) {
+    public CategoryResponseDTO getCategoryById(Long userId, Long categoryId) {
         validateUserOwnership(userId);
 
         Category category = categoryRepository.findByIdAndUserId(categoryId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category", "id", categoryId));
 
-        return dtoMapper.toCategoryDTO(category);
+        return dtoMapper.toCategoryResponseDTO(category);
     }
 
     @Override
     @Transactional(readOnly = true)
     @PreAuthorize("isAuthenticated()")
-    public List<CategoryRequestDTO > getAllCategoriesByUserId(Long userId) {
+    public List<CategoryResponseDTO > getAllCategoriesByUserId(Long userId) {
         validateUserOwnership(userId);
 
         if (!userRepository.existsById(userId)) {
@@ -74,13 +75,13 @@ public class CategoryServiceImpl implements CategoryService {
         List<Category> categories = categoryRepository.findByUserId(userId);
 
         return categories.stream()
-                .map(dtoMapper::toCategoryDTO)
+                .map(dtoMapper::toCategoryResponseDTO)
                 .collect(Collectors.toList());
     }
 
     @Override
     @PreAuthorize("isAuthenticated()")
-    public CategoryRequestDTO updateCategory(Long userId, Long categoryId, CategoryRequestDTO  categoryDTO) {
+    public CategoryResponseDTO updateCategory(Long userId, Long categoryId, CategoryRequestDTO  categoryDTO) {
         validateUserOwnership(userId);
 
         Category category = categoryRepository.findByIdAndUserId(categoryId, userId)
@@ -92,7 +93,7 @@ public class CategoryServiceImpl implements CategoryService {
         Category updatedCategory = categoryRepository.save(category);
         log.info("Category updated: {} by user: {}", updatedCategory.getId(), userId);
 
-        return dtoMapper.toCategoryDTO(updatedCategory);
+        return dtoMapper.toCategoryResponseDTO(updatedCategory);
     }
 
     @Override
