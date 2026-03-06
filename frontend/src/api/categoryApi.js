@@ -1,33 +1,35 @@
 import axiosInstance from './axios';
 
-export const categoryApi = {
-  // Get all categories for a user
-  getAllCategories: async (userId) => {
-    const response = await axiosInstance.get(`/categories?userId=${userId}`);
+const categoryApi = {
+  // Create new category
+  createCategory: async (categoryData) => {
+    const response = await axiosInstance.post('/categories', categoryData);
+    return response;
+  },
+
+  // Get all categories
+  getAllCategories: async () => {
+    const response = await axiosInstance.get('/categories');
     return response;
   },
 
   // Get category by ID
-  getCategoryById: async (userId, categoryId) => {
-    const response = await axiosInstance.get(`/categories/${userId}/${categoryId}`);
-    return response;
-  },
-
-  // Create new category
-  createCategory: async (userId, categoryData) => {
-    const response = await axiosInstance.post(`/categories?userId=${userId}`, categoryData);
+  getCategoryById: async (categoryId) => {
+    const response = await axiosInstance.get(`/categories/${categoryId}`);
     return response;
   },
 
   // Update category
-  updateCategory: async (userId, categoryId, categoryData) => {
-    const response = await axiosInstance.put(`/categories/${userId}/${categoryId}`, categoryData);
+  updateCategory: async (categoryId, categoryData) => {
+    const response = await axiosInstance.put(`/categories/${categoryId}`, categoryData);
     return response;
   },
 
   // Delete category
-  deleteCategory: async (userId, categoryId) => {
-    const response = await axiosInstance.delete(`/categories/${userId}/${categoryId}`);
+  deleteCategory: async (categoryId) => {
+    const response = await axiosInstance.delete(`/categories/${categoryId}`);
     return response;
-  },
+  }
 };
+
+export { categoryApi };
