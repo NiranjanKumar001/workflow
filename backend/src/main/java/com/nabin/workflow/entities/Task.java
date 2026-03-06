@@ -7,6 +7,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "tasks")
@@ -37,7 +39,6 @@ public class Task {
     @Builder.Default
     private TaskPriority priority = TaskPriority.MEDIUM;
 
-    // FIX #1: Consistently LocalDate, not LocalDateTime
     @Column(name = "due_date")
     private LocalDate dueDate;
 
@@ -45,9 +46,15 @@ public class Task {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id")
-    private Category category;
+    // ✅ Many-to-Many relationship with Categories
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "task_categories",
+            joinColumns = @JoinColumn(name = "task_id"),
+            inverseJoinColumns = @JoinColumn(name = "category_id")
+    )
+    @Builder.Default
+    private Set<Category> categories = new HashSet<>();
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
@@ -60,6 +67,7 @@ public class Task {
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
+    // Helper methods
     public boolean isOverdue() {
         if (dueDate == null || status == TaskStatus.COMPLETED || status == TaskStatus.ARCHIVED) {
             return false;
@@ -67,15 +75,40 @@ public class Task {
         return LocalDate.now().isAfter(dueDate);
     }
 
-    // FIX #5: Full transition matrix used by service layer
     public boolean canTransitionTo(TaskStatus newStatus) {
-        if (this.status == newStatus) return true;
+        if (status == newStatus) {
+            return true;
+        }
 
-        return switch (this.status) {
-            case TODO       -> newStatus == TaskStatus.IN_PROGRESS || newStatus == TaskStatus.ARCHIVED;
-            case IN_PROGRESS-> newStatus == TaskStatus.TODO || newStatus == TaskStatus.COMPLETED || newStatus == TaskStatus.ARCHIVED;
-            case COMPLETED  -> newStatus == TaskStatus.TODO || newStatus == TaskStatus.ARCHIVED;
-            case ARCHIVED   -> false;
+        return switch (status) {
+            case TODO -> newStatus == TaskStatus.IN_PROGRESS ||
+                    newStatus == TaskStatus.ARCHIVED;
+
+            case IN_PROGRESS -> newStatus == TaskStatus.TODO ||
+                    newStatus == TaskStatus.COMPLETED ||
+                    newStatus == TaskStatus.ARCHIVED;
+
+            case COMPLETED -> newStatus == TaskStatus.TODO ||
+                    newStatus == TaskStatus.ARCHIVED;
+
+            case ARCHIVED -> false;
         };
+    }
+
+    //
+    public void addCategory(Category category) {
+        this.categories.add(category);
+        category.getTasks().add(this);
+    }
+
+    public void removeCategory(Category category) {
+        this.categories.remove(category);
+        category.getTasks().remove(this);
+    }
+
+    public void clearCategories() {
+        for (Category category : new HashSet<>(categories)) {
+            removeCategory(category);
+        }
     }
 }
