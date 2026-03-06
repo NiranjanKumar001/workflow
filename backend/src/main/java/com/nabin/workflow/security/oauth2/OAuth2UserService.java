@@ -173,7 +173,7 @@ public class OAuth2UserService extends DefaultOAuth2UserService {
         }
 
         // Scenario 3: User using different OAuth provider (Google vs Facebook, etc.)
-        if (user.getProvider() != AuthProvider.LOCAL && user.getProvider() != newProvider) {
+        if (user.getProvider() != AuthProvider.LOCAL) {
             log.error("Email already registered with {} provider", user.getProvider());
             throw new OAuth2AuthenticationException(
                     "Email already registered with " + user.getProvider() + " provider. " +
