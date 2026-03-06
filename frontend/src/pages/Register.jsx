@@ -126,7 +126,7 @@ function Register() {
 
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-500 to-teal-600 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-350 to-slate-450 p-4">
       <div className="bg-white rounded-lg shadow-2xl p-8 w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
