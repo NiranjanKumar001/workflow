@@ -6,93 +6,145 @@ import com.nabin.workflow.entities.TaskStatus;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class TaskSpecification {
 
+    // ----------------------------------------------------------------
+    // SINGLE-PURPOSE SPECIFICATIONS (used in TaskServiceImpl)
+    // ----------------------------------------------------------------
+
+    public static Specification<Task> hasUserId(Long userId) {
+        return (root, query, cb) ->
+                cb.equal(root.get("user").get("id"), userId);
+    }
+
+    public static Specification<Task> hasStatus(TaskStatus status) {
+        return (root, query, cb) ->
+                cb.equal(root.get("status"), status);
+    }
+
+    public static Specification<Task> hasPriority(TaskPriority priority) {
+        return (root, query, cb) ->
+                cb.equal(root.get("priority"), priority);
+    }
+
+    public static Specification<Task> hasCategoryId(Long categoryId) {
+        return (root, query, cb) ->
+                cb.equal(root.get("category").get("id"), categoryId);
+    }
+
     /**
-     * Build dynamic specification based on filter criteria
+     * Overdue = dueDate is before today AND status is not COMPLETED or ARCHIVED
+     * FIX: uses LocalDate, not LocalDateTime
      */
+    public static Specification<Task> isOverdue() {
+        return (root, query, cb) -> cb.and(
+                cb.lessThan(root.get("dueDate"), LocalDate.now()),
+                cb.notEqual(root.get("status"), TaskStatus.COMPLETED),
+                cb.notEqual(root.get("status"), TaskStatus.ARCHIVED)
+        );
+    }
+
+    public static Specification<Task> dueDateAfter(LocalDate from) {
+        return (root, query, cb) ->
+                cb.greaterThanOrEqualTo(root.get("dueDate"), from);
+    }
+
+    public static Specification<Task> dueDateBefore(LocalDate to) {
+        return (root, query, cb) ->
+                cb.lessThanOrEqualTo(root.get("dueDate"), to);
+    }
+
+    public static Specification<Task> dueDateBetween(LocalDate from, LocalDate to) {
+        return (root, query, cb) ->
+                cb.between(root.get("dueDate"), from, to);
+    }
+
+    public static Specification<Task> searchByTitleOrDescription(String keyword) {
+        return (root, query, cb) -> {
+            String pattern = "%" + keyword.toLowerCase() + "%";
+            return cb.or(
+                    cb.like(cb.lower(root.get("title")), pattern),
+                    cb.like(cb.lower(root.get("description")), pattern)
+            );
+        };
+    }
+
+    /**
+     * Excludes tasks whose status is any of the provided values.
+     * Varargs so you can pass as many statuses as needed.
+     */
+    public static Specification<Task> statusNotIn(TaskStatus... statuses) {
+        return (root, query, cb) ->
+                cb.not(root.get("status").in(Arrays.asList(statuses)));
+    }
+
+    // ----------------------------------------------------------------
+    // COMPOSITE SPECIFICATION (kept for backward-compat if needed)
+    // FIX: dueDateFrom/To changed from LocalDateTime to LocalDate
+    // ----------------------------------------------------------------
+
     public static Specification<Task> filterTasks(
             Long userId,
             TaskStatus status,
             TaskPriority priority,
-            LocalDateTime dueDateFrom,
-            LocalDateTime dueDateTo,
+            LocalDate dueDateFrom,
+            LocalDate dueDateTo,
             String searchKeyword) {
 
-        return (root, query, criteriaBuilder) -> {
+        return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            // Always filter by user ID (security requirement)
             if (userId != null) {
-                predicates.add(criteriaBuilder.equal(root.get("user").get("id"), userId));
+                predicates.add(cb.equal(root.get("user").get("id"), userId));
             }
-
-            // Filter by status
             if (status != null) {
-                predicates.add(criteriaBuilder.equal(root.get("status"), status));
+                predicates.add(cb.equal(root.get("status"), status));
             }
-
-            // Filter by priority
             if (priority != null) {
-                predicates.add(criteriaBuilder.equal(root.get("priority"), priority));
+                predicates.add(cb.equal(root.get("priority"), priority));
             }
-
-            // Filter by due date range
             if (dueDateFrom != null) {
-                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("dueDate"), dueDateFrom));
+                predicates.add(cb.greaterThanOrEqualTo(root.get("dueDate"), dueDateFrom));
             }
             if (dueDateTo != null) {
-                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("dueDate"), dueDateTo));
+                predicates.add(cb.lessThanOrEqualTo(root.get("dueDate"), dueDateTo));
+            }
+            if (searchKeyword != null && !searchKeyword.isBlank()) {
+                String pattern = "%" + searchKeyword.toLowerCase() + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(root.get("title")), pattern),
+                        cb.like(cb.lower(root.get("description")), pattern)
+                ));
             }
 
-            // Search in title and description
-            if (searchKeyword != null && !searchKeyword.trim().isEmpty()) {
-                String likePattern = "%" + searchKeyword.toLowerCase() + "%";
-                Predicate titleMatch = criteriaBuilder.like(
-                        criteriaBuilder.lower(root.get("title")), likePattern);
-                Predicate descriptionMatch = criteriaBuilder.like(
-                        criteriaBuilder.lower(root.get("description")), likePattern);
-                predicates.add(criteriaBuilder.or(titleMatch, descriptionMatch));
-            }
-
-            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+            return cb.and(predicates.toArray(new Predicate[0]));
         };
     }
 
     /**
-     * Get overdue tasks for a user
+     * FIX: uses LocalDate, not LocalDateTime
      */
     public static Specification<Task> overdueTasks(Long userId) {
-        return (root, query, criteriaBuilder) -> {
-            List<Predicate> predicates = new ArrayList<>();
-
-            predicates.add(criteriaBuilder.equal(root.get("user").get("id"), userId));
-            predicates.add(criteriaBuilder.lessThan(root.get("dueDate"), LocalDateTime.now()));
-            predicates.add(criteriaBuilder.notEqual(root.get("status"), TaskStatus.DONE));
-
-            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
-        };
+        return Specification
+                .where(hasUserId(userId))
+                .and(isOverdue());
     }
 
     /**
-     * Get tasks due soon (within next N days)
+     * FIX: uses LocalDate, not LocalDateTime
      */
     public static Specification<Task> tasksDueSoon(Long userId, int daysAhead) {
-        return (root, query, criteriaBuilder) -> {
-            List<Predicate> predicates = new ArrayList<>();
+        LocalDate today = LocalDate.now();
+        LocalDate futureDate = today.plusDays(daysAhead);
 
-            LocalDateTime now = LocalDateTime.now();
-            LocalDateTime futureDate = now.plusDays(daysAhead);
-
-            predicates.add(criteriaBuilder.equal(root.get("user").get("id"), userId));
-            predicates.add(criteriaBuilder.between(root.get("dueDate"), now, futureDate));
-            predicates.add(criteriaBuilder.notEqual(root.get("status"), TaskStatus.DONE));
-
-            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
-        };
+        return Specification
+                .where(hasUserId(userId))
+                .and(dueDateBetween(today, futureDate))
+                .and(statusNotIn(TaskStatus.COMPLETED, TaskStatus.ARCHIVED));
     }
 }
