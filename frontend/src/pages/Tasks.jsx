@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { taskApi } from '../api/taskApi';
-import { authApi } from '../api/authApi';
+import { categoryApi } from '../api/categoryApi';
 import toast from 'react-hot-toast';
 
 function Tasks() {
   const navigate = useNavigate();
   const [tasks, setTasks] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
@@ -18,19 +21,38 @@ function Tasks() {
     description: '',
     priority: 'MEDIUM',
     status: 'TODO',
-    dueDate: ''
+    dueDate: '',
+    categoryIds: []
   });
 
   useEffect(() => {
+    loadCategories();
+  }, []);
+
+  useEffect(() => {
     loadTasks();
-  }, [filter]);
+  }, [filter, selectedCategories]);
+
+  const loadCategories = async () => {
+    try {
+      const response = await categoryApi.getAllCategories();
+      if (response.success) {
+        setCategories(response.data);
+      }
+    } catch (error) {
+      console.error('Error loading categories:', error);
+    }
+  };
 
   const loadTasks = async () => {
     try {
       setLoading(true);
 
       let response;
-      if (filter === 'ALL') {
+      if (selectedCategories.length > 0) {
+        // Filter by categories
+        response = await taskApi.getTasksByCategories(selectedCategories);
+      } else if (filter === 'ALL') {
         response = await taskApi.getAllTasks();
       } else if (filter === 'OVERDUE') {
         response = await taskApi.getOverdueTasks();
@@ -44,6 +66,28 @@ function Tasks() {
     } catch (error) {
       console.error('Error loading tasks:', error);
       toast.error('Failed to load tasks');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      loadTasks();
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await taskApi.searchTasks(searchQuery);
+
+      if (response.success) {
+        setTasks(response.data);
+        toast.success(`Found ${response.data.length} task(s)`);
+      }
+    } catch (error) {
+      console.error('Error searching tasks:', error);
+      toast.error('Search failed');
     } finally {
       setLoading(false);
     }
@@ -68,7 +112,8 @@ function Tasks() {
           description: '',
           priority: 'MEDIUM',
           status: 'TODO',
-          dueDate: ''
+          dueDate: '',
+          categoryIds: []
         });
         loadTasks();
       }
@@ -111,7 +156,10 @@ function Tasks() {
   };
 
   const handleEditTask = (task) => {
-    setSelectedTask(task);
+    setSelectedTask({
+      ...task,
+      categoryIds: task.categories ? task.categories.map(c => c.id) : []
+    });
     setShowEditModal(true);
   };
 
@@ -131,6 +179,14 @@ function Tasks() {
       console.error('Error updating task:', error);
       toast.error(error.response?.data?.message || 'Failed to update task');
     }
+  };
+
+  const toggleCategory = (categoryId) => {
+    setSelectedCategories(prev =>
+      prev.includes(categoryId)
+        ? prev.filter(id => id !== categoryId)
+        : [...prev, categoryId]
+    );
   };
 
   const getPriorityColor = (priority) => {
@@ -172,6 +228,12 @@ function Tasks() {
           </div>
           <div className="flex gap-3">
             <button
+              onClick={() => navigate('/categories')}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+            >
+              Categories
+            </button>
+            <button
               onClick={() => navigate('/dashboard')}
               className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
             >
@@ -189,12 +251,71 @@ function Tasks() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Filters */}
+        {/* Search Bar */}
+        <div className="mb-6">
+          <div className="flex gap-3">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              placeholder="Search tasks by title or description..."
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              onClick={handleSearch}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              Search
+            </button>
+            {searchQuery && (
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  loadTasks();
+                }}
+                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Category Filters */}
+        {categories.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-sm font-medium text-gray-700 mb-3">Filter by Category:</h3>
+            <div className="flex flex-wrap gap-2">
+              {categories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => toggleCategory(category.id)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+                    selectedCategories.includes(category.id)
+                      ? 'text-white'
+                      : 'bg-white text-gray-700 hover:bg-gray-100'
+                  }`}
+                  style={{
+                    backgroundColor: selectedCategories.includes(category.id) ? category.color : undefined
+                  }}
+                >
+                  {category.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Status Filters */}
         <div className="mb-6 flex gap-3 overflow-x-auto pb-2">
           {['ALL', 'TODO', 'IN_PROGRESS', 'COMPLETED', 'OVERDUE'].map((filterOption) => (
             <button
               key={filterOption}
-              onClick={() => setFilter(filterOption)}
+              onClick={() => {
+                setFilter(filterOption);
+                setSelectedCategories([]);
+              }}
               className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition ${
                 filter === filterOption
                   ? 'bg-blue-600 text-white'
@@ -213,13 +334,17 @@ function Tasks() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">No tasks found</h3>
-            <p className="text-gray-600 mb-4">Get started by creating your first task!</p>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-            >
-              Create Task
-            </button>
+            <p className="text-gray-600 mb-4">
+              {searchQuery ? 'Try a different search term' : 'Get started by creating your first task!'}
+            </p>
+            {!searchQuery && (
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                Create Task
+              </button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -258,6 +383,21 @@ function Tasks() {
                   <p className="text-gray-600 text-sm mb-4 line-clamp-2">
                     {task.description}
                   </p>
+                )}
+
+                {/* Categories */}
+                {task.categories && task.categories.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {task.categories.map((category) => (
+                      <span
+                        key={category.id}
+                        className="px-3 py-1 rounded-full text-xs font-semibold text-white"
+                        style={{ backgroundColor: category.color }}
+                      >
+                        {category.name}
+                      </span>
+                    ))}
+                  </div>
                 )}
 
                 {/* Tags */}
@@ -317,8 +457,8 @@ function Tasks() {
 
       {/* Create Task Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 my-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Create New Task</h2>
 
             <form onSubmit={handleCreateTask} className="space-y-4">
@@ -377,6 +517,42 @@ function Tasks() {
                 </div>
               </div>
 
+              {/* Category Selection */}
+              {categories.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Categories
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {categories.map((category) => (
+                      <button
+                        key={category.id}
+                        type="button"
+                        onClick={() => {
+                          const categoryIds = newTask.categoryIds || [];
+                          setNewTask({
+                            ...newTask,
+                            categoryIds: categoryIds.includes(category.id)
+                              ? categoryIds.filter(id => id !== category.id)
+                              : [...categoryIds, category.id]
+                          });
+                        }}
+                        className={`px-3 py-1 rounded-full text-xs font-semibold transition ${
+                          (newTask.categoryIds || []).includes(category.id)
+                            ? 'text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                        style={{
+                          backgroundColor: (newTask.categoryIds || []).includes(category.id) ? category.color : undefined
+                        }}
+                      >
+                        {category.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-3 pt-4">
                 <button
                   type="submit"
@@ -397,10 +573,10 @@ function Tasks() {
         </div>
       )}
 
-      {/* Edit Task Modal */}
+      {/* Edit Task Modal - Similar to Create but with selectedTask */}
       {showEditModal && selectedTask && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 my-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Edit Task</h2>
 
             <form onSubmit={handleUpdateTask} className="space-y-4">
@@ -474,6 +650,42 @@ function Tasks() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+
+              {/* Category Selection */}
+              {categories.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Categories
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {categories.map((category) => (
+                      <button
+                        key={category.id}
+                        type="button"
+                        onClick={() => {
+                          const categoryIds = selectedTask.categoryIds || [];
+                          setSelectedTask({
+                            ...selectedTask,
+                            categoryIds: categoryIds.includes(category.id)
+                              ? categoryIds.filter(id => id !== category.id)
+                              : [...categoryIds, category.id]
+                          });
+                        }}
+                        className={`px-3 py-1 rounded-full text-xs font-semibold transition ${
+                          (selectedTask.categoryIds || []).includes(category.id)
+                            ? 'text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                        style={{
+                          backgroundColor: (selectedTask.categoryIds || []).includes(category.id) ? category.color : undefined
+                        }}
+                      >
+                        {category.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="flex gap-3 pt-4">
                 <button
