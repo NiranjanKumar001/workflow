@@ -274,7 +274,7 @@ public class UserServiceImpl implements UserService {
 
         // Get user statistics
         long totalTasks = taskRepository.countByUserId(userId);
-        long completedTasks = taskRepository.countByUserIdAndStatus(userId, TaskStatus.DONE);
+        long completedTasks = taskRepository.countByUserIdAndStatus(userId, TaskStatus.COMPLETED);
         long totalCategories = categoryRepository.countByUserId(userId);
 
         Set<String> roleNames = user.getRoles().stream()
