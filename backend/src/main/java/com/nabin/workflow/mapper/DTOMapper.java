@@ -1,15 +1,14 @@
 package com.nabin.workflow.mapper;
 
-import com.nabin.workflow.dto.request.CategoryRequestDTO;
+import com.nabin.workflow.dto.response.CategoryResponseDTO;
+import com.nabin.workflow.dto.response.RoleResponseDTO;
 import com.nabin.workflow.dto.response.TaskResponseDTO;
 import com.nabin.workflow.dto.response.UserResponseDTO;
-import com.nabin.workflow.dto.response.CategoryResponseDTO;
+import com.nabin.workflow.entities.Category;
 import com.nabin.workflow.entities.Role;
 import com.nabin.workflow.entities.Task;
 import com.nabin.workflow.entities.User;
-import com.nabin.workflow.entities.Category;
 import org.springframework.stereotype.Component;
-import com.nabin.workflow.dto.response.RoleResponseDTO;
 
 import java.util.stream.Collectors;
 
@@ -34,8 +33,10 @@ public class DTOMapper {
                 .overdue(task.isOverdue())
                 .userId(task.getUser().getId())
                 .username(task.getUser().getUsername())
-                .categoryId(task.getCategory() != null ? task.getCategory().getId() : null)
-                .categoryName(task.getCategory() != null ? task.getCategory().getName() : null)
+                // Map multiple categories
+                .categories(task.getCategories().stream()
+                        .map(this::toCategoryResponseDTO)
+                        .collect(Collectors.toSet()))
                 .createdAt(task.getCreatedAt())
                 .updatedAt(task.getUpdatedAt())
                 .completedAt(task.getCompletedAt())
