@@ -37,4 +37,5 @@ public interface TaskService {
     Long countOverdueTasks();
 
     TaskStatsDTO getTaskStats();
+
 }
