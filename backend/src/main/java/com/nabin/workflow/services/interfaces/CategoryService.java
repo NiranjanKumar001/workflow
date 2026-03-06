@@ -6,9 +6,9 @@ import com.nabin.workflow.dto.response.CategoryResponseDTO;
 import java.util.List;
 
 public interface CategoryService {
-    CategoryResponseDTO createCategory(Long userId, CategoryRequestDTO categoryRequestDTO);
-    CategoryResponseDTO getCategoryById(Long userId, Long categoryId);
-    List<CategoryResponseDTO> getAllCategoriesByUserId(Long userId);
-    CategoryResponseDTO updateCategory(Long userId, Long categoryId, CategoryRequestDTO categoryRequestDTO);
-    void deleteCategory(Long userId, Long categoryId);
+    CategoryResponseDTO createCategory(CategoryRequestDTO categoryDTO);
+    CategoryResponseDTO getCategoryById(Long categoryId);
+    List<CategoryResponseDTO> getAllCategoriesForCurrentUser();
+    CategoryResponseDTO updateCategory(Long categoryId, CategoryRequestDTO categoryDTO);
+    void deleteCategory(Long categoryId);
 }
