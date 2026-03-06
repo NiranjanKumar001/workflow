@@ -9,9 +9,11 @@ function EmailVerificationBanner() {
   const user = authApi.getCurrentUser();
 
   useEffect(() => {
-    // Show banner if user email is not verified
-    if (user && !user.enabled) {
+    // ✅ Only show if user exists and is NOT enabled
+    if (user && user.enabled === false) {
       setShow(true);
+    } else {
+      setShow(false);
     }
   }, [user]);
 
@@ -28,8 +30,6 @@ function EmailVerificationBanner() {
 
       const response = await axios.post(`/auth/resend-verification?email=${encodeURIComponent(user.email)}`);
 
-      console.log('✅ Response:', response);
-
       if (response.success) {
         toast.success('Verification email sent! Please check your inbox.');
       }
@@ -41,6 +41,7 @@ function EmailVerificationBanner() {
     }
   };
 
+  // ✅ Don't render if shouldn't show
   if (!show) return null;
 
   return (
