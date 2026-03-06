@@ -24,6 +24,23 @@ const taskApi = {
     const response = await axiosInstance.get(`/tasks/status/${status}`);
     return response;
   },
+//  Get task statistics
+   getTaskStats: async () => {
+      const response = await axiosInstance.get('/tasks/stats');
+      return response;
+    },
+
+  // Search tasks
+  searchTasks: async (query) => {
+    const response = await axiosInstance.get(`/tasks/search?q=${encodeURIComponent(query)}`);
+    return response;
+  },
+
+  // Get tasks by categories (comma-separated IDs)
+  getTasksByCategories: async (categoryIds) => {
+    const response = await axiosInstance.get(`/tasks?category=${categoryIds.join(',')}`);
+    return response;
+  },
 
   // Update task
   updateTask: async (taskId, taskData) => {
@@ -58,12 +75,6 @@ const taskApi = {
   // Get tasks due soon
   getTasksDueSoon: async (days = 7) => {
     const response = await axiosInstance.get(`/tasks/due-soon?days=${days}`);
-    return response;
-  },
-
-  // Get task statistics
-  getTaskStats: async () => {
-    const response = await axiosInstance.get('/tasks/stats');
     return response;
   }
 };
