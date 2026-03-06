@@ -10,20 +10,17 @@ function UserProfile() {
   const [editing, setEditing] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
 
-  // Edit profile form
   const [editForm, setEditForm] = useState({
     username: '',
     email: ''
   });
 
-  // Change password form
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   });
 
-  // Fetch profile on component mount
   useEffect(() => {
     fetchProfile();
   }, []);
@@ -32,7 +29,6 @@ function UserProfile() {
     try {
       setLoading(true);
       const response = await axios.get('/users/me');
-
       if (response.success) {
         setProfile(response.data);
         setEditForm({
@@ -50,24 +46,24 @@ function UserProfile() {
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
-
     try {
       const response = await axios.put('/users/me', editForm);
-
       if (response.success) {
         toast.success('Profile updated successfully!');
         setProfile(response.data);
         setEditing(false);
 
-        // Update localStorage user info
-        const user = JSON.parse(localStorage.getItem('user'));
-        user.username = response.data.username;
-        user.email = response.data.email;
-        localStorage.setItem('user', JSON.stringify(user));
+        // FIX: Null check before accessing localStorage user
+        const stored = localStorage.getItem('user');
+        if (stored) {
+          const user = JSON.parse(stored);
+          user.username = response.data.username;
+          user.email = response.data.email;
+          localStorage.setItem('user', JSON.stringify(user));
+        }
       }
     } catch (error) {
       console.error('Error updating profile:', error);
-
       if (error.response?.data?.fieldErrors) {
         const errors = error.response.data.fieldErrors;
         Object.values(errors).forEach(err => toast.error(err));
@@ -80,7 +76,6 @@ function UserProfile() {
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
 
-    // Validate passwords match
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       toast.error('New passwords do not match');
       return;
@@ -88,21 +83,15 @@ function UserProfile() {
 
     try {
       const response = await axios.put('/users/me/password', passwordForm);
-
       if (response.success) {
         toast.success('Password changed! Please login again.');
-
-        // Clear forms
-        setPasswordForm({
-          currentPassword: '',
-          newPassword: '',
-          confirmPassword: ''
-        });
+        setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
         setChangingPassword(false);
 
-        // Logout after 2 seconds
+        // FIX: Clear ALL auth storage including refreshToken
         setTimeout(() => {
           localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
           localStorage.removeItem('user');
           navigate('/login');
         }, 2000);
@@ -129,9 +118,12 @@ function UserProfile() {
     );
   }
 
+  const isOAuthUser = profile.provider !== 'LOCAL';
+
   return (
     <div className="min-h-screen bg-gray-100 py-8">
       <div className="max-w-4xl mx-auto px-4">
+
         {/* Header */}
         <div className="mb-8">
           <button
@@ -158,18 +150,15 @@ function UserProfile() {
           </div>
 
           {!editing ? (
-            // View Mode
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-600">Username</label>
                 <p className="text-lg text-gray-900">{profile.username}</p>
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-600">Email</label>
                 <p className="text-lg text-gray-900">{profile.email}</p>
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-600">Account Type</label>
                 <div className="flex items-center gap-2">
@@ -181,13 +170,10 @@ function UserProfile() {
                     {profile.provider}
                   </span>
                   {profile.provider === 'GOOGLE' && profile.providerId && (
-                    <span className="text-sm text-gray-500">
-                      (Connected with Google)
-                    </span>
+                    <span className="text-sm text-gray-500">(Connected with Google)</span>
                   )}
                 </div>
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-600">Account Status</label>
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${
@@ -196,7 +182,6 @@ function UserProfile() {
                   {profile.enabled ? 'Active' : 'Inactive'}
                 </span>
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-600">Member Since</label>
                 <p className="text-lg text-gray-900">
@@ -205,7 +190,6 @@ function UserProfile() {
               </div>
             </div>
           ) : (
-            // Edit Mode
             <form onSubmit={handleEditSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -223,12 +207,20 @@ function UserProfile() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Email
+                  {/* FIX: OAuth users cannot change email — managed by Google */}
+                  {isOAuthUser && (
+                    <span className="ml-2 text-xs text-gray-400">(managed by {profile.provider})</span>
+                  )}
                 </label>
                 <input
                   type="email"
                   value={editForm.email}
                   onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  // FIX: Disable email edit for OAuth users
+                  disabled={isOAuthUser}
+                  className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                    isOAuthUser ? 'bg-gray-100 cursor-not-allowed text-gray-500' : ''
+                  }`}
                   required
                 />
               </div>
@@ -244,10 +236,7 @@ function UserProfile() {
                   type="button"
                   onClick={() => {
                     setEditing(false);
-                    setEditForm({
-                      username: profile.username,
-                      email: profile.email
-                    });
+                    setEditForm({ username: profile.username, email: profile.email });
                   }}
                   className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
                 >
@@ -264,21 +253,21 @@ function UserProfile() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-blue-50 p-4 rounded-lg">
               <p className="text-sm text-gray-600">Total Tasks</p>
-              <p className="text-3xl font-bold text-blue-600">{profile.totalTasks}</p>
+              <p className="text-3xl font-bold text-blue-600">{profile.totalTasks ?? 0}</p>
             </div>
             <div className="bg-green-50 p-4 rounded-lg">
               <p className="text-sm text-gray-600">Completed Tasks</p>
-              <p className="text-3xl font-bold text-green-600">{profile.completedTasks}</p>
+              <p className="text-3xl font-bold text-green-600">{profile.completedTasks ?? 0}</p>
             </div>
             <div className="bg-purple-50 p-4 rounded-lg">
               <p className="text-sm text-gray-600">Categories</p>
-              <p className="text-3xl font-bold text-purple-600">{profile.totalCategories}</p>
+              <p className="text-3xl font-bold text-purple-600">{profile.totalCategories ?? 0}</p>
             </div>
           </div>
         </div>
 
-        {/* Change Password Card (LOCAL users only) */}
-        {profile.provider === 'LOCAL' && (
+        {/* Change Password — LOCAL users only */}
+        {!isOAuthUser && (
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex justify-between items-start mb-6">
               <div>
@@ -311,7 +300,6 @@ function UserProfile() {
                     required
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     New Password
@@ -328,7 +316,6 @@ function UserProfile() {
                     Must be at least 6 characters with uppercase, lowercase, digit, and special character
                   </p>
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Confirm New Password
@@ -341,7 +328,6 @@ function UserProfile() {
                     required
                   />
                 </div>
-
                 <div className="flex gap-3">
                   <button
                     type="submit"
@@ -353,11 +339,7 @@ function UserProfile() {
                     type="button"
                     onClick={() => {
                       setChangingPassword(false);
-                      setPasswordForm({
-                        currentPassword: '',
-                        newPassword: '',
-                        confirmPassword: ''
-                      });
+                      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
                     }}
                     className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
                   >
@@ -369,15 +351,16 @@ function UserProfile() {
           </div>
         )}
 
-        {/* OAuth User Message */}
-        {profile.provider !== 'LOCAL' && (
+        {/* OAuth User Notice */}
+        {isOAuthUser && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-blue-800">
               <strong>Note:</strong> You're logged in with {profile.provider}.
-              Password management is handled by your {profile.provider} account.
+              Password and email management is handled by your {profile.provider} account.
             </p>
           </div>
         )}
+
       </div>
     </div>
   );
