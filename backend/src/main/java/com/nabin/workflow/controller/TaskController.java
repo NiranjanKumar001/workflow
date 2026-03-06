@@ -17,7 +17,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/tasks")
@@ -44,19 +47,23 @@ public class TaskController {
         );
     }
 
-    // -------------------------------------------------------
-    // GET /api/tasks/stats — Task statistics
-    // FIX: this endpoint was missing — caused "Failed to load dashboard data"
-    // Must be declared BEFORE /{id} to avoid path ambiguity
-    // -------------------------------------------------------
+    /**
+     * Get task statistics
+     * GET /api/tasks/stats
+     */
     @GetMapping("/stats")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<TaskStatsDTO>> getTaskStats() {
-        log.info("Fetching task stats for current user");
+        log.info("Fetching task statistics");
+
         TaskStatsDTO stats = taskService.getTaskStats();
-        return ResponseEntity.ok(
-                ApiResponse.success("Task stats retrieved successfully", stats)
+
+        ApiResponse<TaskStatsDTO> response = ApiResponse.success(
+                "Task statistics retrieved successfully",
+                stats
         );
+
+        return ResponseEntity.ok(response);
     }
 
     // -------------------------------------------------------
@@ -197,4 +204,64 @@ public class TaskController {
                 ApiResponse.success("Tasks filtered successfully", tasks)
         );
     }
+
+    /**
+     * Search tasks by keyword
+     * GET /api/tasks/search?q=meeting
+     */
+    @GetMapping("/search")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<List<TaskResponseDTO>>> searchTasks(
+            @RequestParam String q) {
+
+        log.info("Searching tasks with query: {}", q);
+
+        TaskFilterDTO filterDTO = TaskFilterDTO.builder()
+                .searchQuery(q)
+                .page(0)
+                .size(100)
+                .build();
+
+        Page<TaskResponseDTO> tasks = taskService.filterTasks(filterDTO);
+
+        ApiResponse<List<TaskResponseDTO>> response = ApiResponse.success(
+                "Tasks found: " + tasks.getTotalElements(),
+                tasks.getContent()
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Get tasks by categories (comma-separated)
+     * GET /api/tasks?category=1,2,3
+     */
+    @GetMapping(params = "category")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<List<TaskResponseDTO>>> getTasksByCategories(
+            @RequestParam String category) {
+
+        log.info("Fetching tasks with categories: {}", category);
+
+        Set<Long> categoryIds = Arrays.stream(category.split(","))
+                .map(String::trim)
+                .map(Long::parseLong)
+                .collect(Collectors.toSet());
+
+        TaskFilterDTO filterDTO = TaskFilterDTO.builder()
+                .categoryIds(categoryIds)
+                .page(0)
+                .size(100)
+                .build();
+
+        Page<TaskResponseDTO> tasks = taskService.filterTasks(filterDTO);
+
+        ApiResponse<List<TaskResponseDTO>> response = ApiResponse.success(
+                "Tasks retrieved successfully",
+                tasks.getContent()
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
 }
