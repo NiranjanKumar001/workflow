@@ -2,35 +2,31 @@ package com.nabin.workflow.dto.request;
 
 import com.nabin.workflow.entities.TaskPriority;
 import com.nabin.workflow.entities.TaskStatus;
-import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import java.time.LocalDateTime;
+
+import java.time.LocalDate;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class TaskRequestDTO {
 
     @NotBlank(message = "Title is required")
-    @Size(max = 255, message = "Title must not exceed 255 characters")
+    @Size(min = 1, max = 200, message = "Title must be between 1 and 200 characters")
     private String title;
 
-    @Size(max = 3000, message = "Description must not exceed 2000 characters")
+    @Size(max = 5000, message = "Description cannot exceed 5000 characters")
     private String description;
 
-    @NotNull(message = "Status is required")
     private TaskStatus status;
 
-    @NotNull(message = "Priority is required")
     private TaskPriority priority;
 
-    @Future(message = "Due date must be in the future")
-    private LocalDateTime dueDate;
+    private LocalDate dueDate;
+
+    private Long categoryId;
 }
