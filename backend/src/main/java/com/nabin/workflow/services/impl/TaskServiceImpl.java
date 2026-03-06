@@ -28,7 +28,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -47,19 +50,17 @@ public class TaskServiceImpl implements TaskService {
     // =========================================================
 
     @Override
+    @Transactional
     @PreAuthorize("isAuthenticated()")
     public TaskResponseDTO createTask(TaskRequestDTO taskDTO) {
         Long userId = SecurityUtil.getCurrentUserId();
 
-        // FIX #4: Existence check before any other logic
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
-        // FIX #1: LocalDate comparison (was LocalDateTime)
-        validateDueDateForCreate(taskDTO.getDueDate());
-
-        // FIX #9: HIGH/URGENT priority requires a due date
-        validatePriorityRequiresDueDate(taskDTO.getPriority(), taskDTO.getDueDate());
+        if (taskDTO.getDueDate() != null && taskDTO.getDueDate().isBefore(LocalDate.now())) {
+            throw new InvalidBusinessRuleException("Due date must be in the present or future");
+        }
 
         Task task = Task.builder()
                 .title(taskDTO.getTitle())
@@ -70,17 +71,23 @@ public class TaskServiceImpl implements TaskService {
                 .user(user)
                 .build();
 
-        if (taskDTO.getCategoryId() != null) {
-            Category category = categoryRepository.findByIdAndUserId(taskDTO.getCategoryId(), userId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Category", "id", taskDTO.getCategoryId()));
-            task.setCategory(category);
+        // Handle multiple categories
+        if (taskDTO.getCategoryIds() != null && !taskDTO.getCategoryIds().isEmpty()) {
+            Set<Category> categories = categoryRepository.findByIdInAndUserId(taskDTO.getCategoryIds(), userId);
+
+            if (categories.size() != taskDTO.getCategoryIds().size()) {
+                throw new ResourceNotFoundException("One or more categories not found");
+            }
+
+            task.setCategories(categories);
         }
 
         Task savedTask = taskRepository.save(task);
-        log.info("Task created: {} by user: {}", savedTask.getId(), userId);
+        log.info("✅ Task created - ID: {}, Title: {}, Categories: {}",
+                savedTask.getId(), savedTask.getTitle(), savedTask.getCategories().size());
+
         return dtoMapper.toTaskResponseDTO(savedTask);
     }
-
     // =========================================================
     // READ
     // =========================================================
@@ -120,8 +127,8 @@ public class TaskServiceImpl implements TaskService {
     // =========================================================
 
     @Override
+    @Transactional
     @PreAuthorize("isAuthenticated()")
-    // FIX #7: Uses TaskUpdateDTO (all fields optional), not TaskCreateDTO
     public TaskResponseDTO updateTask(Long taskId, TaskUpdateDTO taskDTO) {
         Long userId = SecurityUtil.getCurrentUserId();
 
@@ -129,16 +136,10 @@ public class TaskServiceImpl implements TaskService {
                 .orElseThrow(() -> new ResourceNotFoundException("Task", "id", taskId));
 
         if (taskDTO.getTitle() != null) {
-            if (taskDTO.getTitle().isBlank()) {
-                throw new InvalidBusinessRuleException("Task title cannot be empty or just whitespace");
-            }
             task.setTitle(taskDTO.getTitle());
         }
 
         if (taskDTO.getDescription() != null) {
-            if (taskDTO.getDescription().length() > 5000) {
-                throw new InvalidBusinessRuleException("Description cannot exceed 5000 characters");
-            }
             task.setDescription(taskDTO.getDescription());
         }
 
@@ -146,31 +147,35 @@ public class TaskServiceImpl implements TaskService {
             task.setPriority(taskDTO.getPriority());
         }
 
-        // FIX #3: Due date validation only when a NEW due date is explicitly provided
         if (taskDTO.getDueDate() != null) {
-            validateDueDateForCreate(taskDTO.getDueDate());
+            if (taskDTO.getDueDate().isBefore(LocalDate.now())) {
+                throw new InvalidBusinessRuleException("Due date must be in the present or future");
+            }
             task.setDueDate(taskDTO.getDueDate());
         }
 
-        // FIX #9: After applying priority/dueDate changes, check HIGH priority rule
-        // using the task's resolved values (existing + any updates)
-        LocalDate resolvedDueDate = taskDTO.getDueDate() != null ? taskDTO.getDueDate() : task.getDueDate();
-        TaskPriority resolvedPriority = taskDTO.getPriority() != null ? taskDTO.getPriority() : task.getPriority();
-        validatePriorityRequiresDueDate(resolvedPriority, resolvedDueDate);
-
-        // FIX #5: Full transition matrix via canTransitionTo()
         if (taskDTO.getStatus() != null && taskDTO.getStatus() != task.getStatus()) {
             updateTaskStatusInternal(task, taskDTO.getStatus());
         }
 
-        if (taskDTO.getCategoryId() != null) {
-            Category category = categoryRepository.findByIdAndUserId(taskDTO.getCategoryId(), userId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Category", "id", taskDTO.getCategoryId()));
-            task.setCategory(category);
+        // Update categories
+        if (taskDTO.getCategoryIds() != null) {
+            task.clearCategories();
+
+            if (!taskDTO.getCategoryIds().isEmpty()) {
+                Set<Category> categories = categoryRepository.findByIdInAndUserId(taskDTO.getCategoryIds(), userId);
+
+                if (categories.size() != taskDTO.getCategoryIds().size()) {
+                    throw new ResourceNotFoundException("One or more categories not found");
+                }
+
+                categories.forEach(task::addCategory);
+            }
         }
 
         Task updatedTask = taskRepository.save(task);
-        log.info("Task updated: {} by user: {}", taskId, userId);
+        log.info("✅ Task updated - ID: {}", taskId);
+
         return dtoMapper.toTaskResponseDTO(updatedTask);
     }
 
@@ -210,7 +215,6 @@ public class TaskServiceImpl implements TaskService {
     @Override
     @Transactional(readOnly = true)
     @PreAuthorize("isAuthenticated()")
-    // FIX #8: Uses TaskFilterDTO with LocalDate fields — no more LocalDateTime mismatch
     public Page<TaskResponseDTO> filterTasks(TaskFilterDTO filterDTO) {
         Long userId = SecurityUtil.getCurrentUserId();
 
@@ -219,44 +223,50 @@ public class TaskServiceImpl implements TaskService {
         if (filterDTO.getStatus() != null) {
             spec = spec.and(TaskSpecification.hasStatus(filterDTO.getStatus()));
         }
+
         if (filterDTO.getPriority() != null) {
             spec = spec.and(TaskSpecification.hasPriority(filterDTO.getPriority()));
         }
-        if (filterDTO.getCategoryId() != null) {
-            spec = spec.and(TaskSpecification.hasCategoryId(filterDTO.getCategoryId()));
+
+        // Filter by multiple categories
+        if (filterDTO.getCategoryIds() != null && !filterDTO.getCategoryIds().isEmpty()) {
+            spec = spec.and(TaskSpecification.hasCategoryIds(filterDTO.getCategoryIds()));
         }
-        if (Boolean.TRUE.equals(filterDTO.getOverdue())) {
+
+        if (filterDTO.getOverdue() != null && filterDTO.getOverdue()) {
             spec = spec.and(TaskSpecification.isOverdue());
         }
+
         if (filterDTO.getDueDateFrom() != null) {
             spec = spec.and(TaskSpecification.dueDateAfter(filterDTO.getDueDateFrom()));
         }
+
         if (filterDTO.getDueDateTo() != null) {
             spec = spec.and(TaskSpecification.dueDateBefore(filterDTO.getDueDateTo()));
         }
+
+        // Search in title and description
         if (filterDTO.getSearchQuery() != null && !filterDTO.getSearchQuery().isBlank()) {
             spec = spec.and(TaskSpecification.searchByTitleOrDescription(filterDTO.getSearchQuery()));
         }
 
-        String sortBy = (filterDTO.getSortBy() != null && !filterDTO.getSortBy().isBlank())
-                ? filterDTO.getSortBy() : "createdAt";
-
-        String sortDirection = (filterDTO.getSortDirection() != null && !filterDTO.getSortDirection().isBlank())
-                ? filterDTO.getSortDirection() : "DESC";
-
-        int page = filterDTO.getPage() != null ? filterDTO.getPage() : 0;
-        int size = filterDTO.getSize() != null ? filterDTO.getSize() : 10;
-
         Sort sort = Sort.by(
-                "ASC".equalsIgnoreCase(sortDirection) ? Sort.Direction.ASC : Sort.Direction.DESC,
-                sortBy
+                filterDTO.getSortDirection().equalsIgnoreCase("ASC")
+                        ? Sort.Direction.ASC
+                        : Sort.Direction.DESC,
+                filterDTO.getSortBy()
         );
 
-        Pageable pageable = PageRequest.of(page, size, sort);
-        return taskRepository.findAll(spec, pageable).map(dtoMapper::toTaskResponseDTO);
+        Pageable pageable = PageRequest.of(
+                filterDTO.getPage(),
+                filterDTO.getSize(),
+                sort
+        );
 
+        Page<Task> tasks = taskRepository.findAll(spec, pageable);
+
+        return tasks.map(dtoMapper::toTaskResponseDTO);
     }
-
     @Override
     @Transactional(readOnly = true)
     @PreAuthorize("isAuthenticated()")
@@ -348,27 +358,75 @@ public class TaskServiceImpl implements TaskService {
         }
     }
 
+    /**
+     * Get comprehensive task statistics
+     */
     @Override
     @Transactional(readOnly = true)
     @PreAuthorize("isAuthenticated()")
     public TaskStatsDTO getTaskStats() {
         Long userId = SecurityUtil.getCurrentUserId();
+        LocalDate today = LocalDate.now();
+        LocalDate weekFromNow = today.plusDays(7);
 
-        long total      = taskRepository.countByUserId(userId);
-        long todo       = taskRepository.countByUserIdAndStatus(userId, TaskStatus.TODO);
-        long inProgress = taskRepository.countByUserIdAndStatus(userId, TaskStatus.IN_PROGRESS);
-        long done       = taskRepository.countByUserIdAndStatus(userId, TaskStatus.COMPLETED);
-        long overdue    = taskRepository.count(
-                Specification.where(TaskSpecification.hasUserId(userId))
-                        .and(TaskSpecification.isOverdue())
-        );
+        // Get all counts
+        Long totalTasks = taskRepository.countByUserId(userId);
+        Long activeTasks = taskRepository.countActiveTasksByUserId(userId);
 
-        return TaskStatsDTO.builder()
-                .totalTasks(total)
-                .todoTasks(todo)
-                .inProgressTasks(inProgress)
-                .doneTasks(done)
-                .overdueTasks(overdue)
+        // Counts by status
+        Long todoTasks = taskRepository.countByUserIdAndStatus(userId, TaskStatus.TODO);
+        Long inProgressTasks = taskRepository.countByUserIdAndStatus(userId, TaskStatus.IN_PROGRESS);
+        Long completedTasks = taskRepository.countByUserIdAndStatus(userId, TaskStatus.COMPLETED);
+        Long archivedTasks = taskRepository.countByUserIdAndStatus(userId, TaskStatus.ARCHIVED);
+
+        // Counts by priority
+        Long lowPriorityTasks = taskRepository.countByUserIdAndPriority(userId, TaskPriority.LOW);
+        Long mediumPriorityTasks = taskRepository.countByUserIdAndPriority(userId, TaskPriority.MEDIUM);
+        Long highPriorityTasks = taskRepository.countByUserIdAndPriority(userId, TaskPriority.HIGH);
+        Long urgentPriorityTasks = taskRepository.countByUserIdAndPriority(userId, TaskPriority.URGENT);
+
+        // Special counts
+        Long overdueTasks = taskRepository.countOverdueTasksByUserId(userId, today);
+        Long dueSoonTasks = taskRepository.countTasksDueSoon(userId, today, weekFromNow);
+
+        // Build stats DTO
+        TaskStatsDTO stats = TaskStatsDTO.builder()
+                .totalTasks(totalTasks)
+                .activeTasks(activeTasks)
+                .todoTasks(todoTasks)
+                .inProgressTasks(inProgressTasks)
+                .completedTasks(completedTasks)
+                .archivedTasks(archivedTasks)
+                .lowPriorityTasks(lowPriorityTasks)
+                .mediumPriorityTasks(mediumPriorityTasks)
+                .highPriorityTasks(highPriorityTasks)
+                .urgentPriorityTasks(urgentPriorityTasks)
+                .overdueTasks(overdueTasks)
+                .dueSoonTasks(dueSoonTasks)
                 .build();
+
+        // Calculate completion rate
+        stats.calculateCompletionRate();
+
+        // Calculate priority distribution
+        if (totalTasks > 0) {
+            Map<String, Double> priorityDistribution = new HashMap<>();
+            priorityDistribution.put("LOW", (lowPriorityTasks * 100.0) / totalTasks);
+            priorityDistribution.put("MEDIUM", (mediumPriorityTasks * 100.0) / totalTasks);
+            priorityDistribution.put("HIGH", (highPriorityTasks * 100.0) / totalTasks);
+            priorityDistribution.put("URGENT", (urgentPriorityTasks * 100.0) / totalTasks);
+            stats.setPriorityDistribution(priorityDistribution);
+
+            // Calculate status distribution
+            Map<String, Double> statusDistribution = new HashMap<>();
+            statusDistribution.put("TODO", (todoTasks * 100.0) / totalTasks);
+            statusDistribution.put("IN_PROGRESS", (inProgressTasks * 100.0) / totalTasks);
+            statusDistribution.put("COMPLETED", (completedTasks * 100.0) / totalTasks);
+            statusDistribution.put("ARCHIVED", (archivedTasks * 100.0) / totalTasks);
+            stats.setStatusDistribution(statusDistribution);
+        }
+
+        log.info("Task stats retrieved for user: {}", userId);
+        return stats;
     }
 }
