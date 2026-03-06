@@ -17,47 +17,53 @@ function Dashboard() {
     loadDashboard();
   }, []);
 
+  // FIX: Split into separate functions so one failure doesn't kill everything
   const loadDashboard = async () => {
+    const currentUser = authApi.getCurrentUser();
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+    setUser(currentUser);
+    setLoading(false); // FIX: Show UI immediately, load data in background
+
+    await Promise.allSettled([loadStats(), loadRecentTasks()]);
+  };
+
+  const loadStats = async () => {
     try {
-      const currentUser = authApi.getCurrentUser();
-
-      if (!currentUser) {
-        navigate('/login');
-        return;
+      const res = await taskApi.getTaskStats();
+      if (res.success) {
+        setStats(res.data);
       }
+    } catch (err) {
+      console.error('Stats error:', err);
+      // Silent fail — stat cards show 0s via || 0 fallbacks in JSX
+    }
+  };
 
-      setUser(currentUser);
-
-      //  Load statistics (no userId needed - from JWT token)
-      const statsResponse = await taskApi.getTaskStats();
-      if (statsResponse.success) {
-        setStats(statsResponse.data);
-      }
-
-      // Load recent tasks (no userId needed - from JWT token)
-      const tasksResponse = await taskApi.filterTasks({
+  const loadRecentTasks = async () => {
+    try {
+      // FIX: sortBy + sortDirection as separate fields to match TaskFilterDTO
+      const res = await taskApi.filterTasks({
         page: 0,
         size: 5,
-        sort: 'createdAt,desc'
+        sortBy: 'createdAt',
+        sortDirection: 'DESC'
       });
-
-      if (tasksResponse.success) {
-        setRecentTasks(tasksResponse.data);
+      if (res.success) {
+        // FIX: Page object returns items inside .content
+        setRecentTasks(res.data.content ?? []);
       }
-
-    } catch (error) {
-      console.error('Dashboard error:', error);
-
-      // Handle 401 errors (token expired or invalid)
-      if (error.response?.status === 401) {
+    } catch (err) {
+      console.error('Recent tasks error:', err);
+      if (err.response?.status === 401) {
         toast.error('Session expired. Please login again.');
         authApi.logout();
         navigate('/login');
       } else {
-        toast.error('Failed to load dashboard data');
+        toast.error('Failed to load recent tasks');
       }
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -80,7 +86,6 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Email Verification Banner */}
       <EmailVerificationBanner />
 
       {/* Header */}
@@ -97,7 +102,6 @@ function Dashboard() {
           </div>
 
           <div className="flex gap-4">
-            {/* Show Admin button if user is admin */}
             {authApi.isAdmin() && (
               <button
                 onClick={() => navigate('/admin')}
@@ -106,21 +110,18 @@ function Dashboard() {
                 Admin Dashboard
               </button>
             )}
-
             <button
               onClick={() => navigate('/profile')}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
             >
               My Profile
             </button>
-
             <button
               onClick={() => navigate('/tasks')}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
             >
               View All Tasks
             </button>
-
             <button
               onClick={handleLogout}
               className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
@@ -133,8 +134,10 @@ function Dashboard() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+
           {/* Total Tasks */}
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center justify-between">
@@ -180,7 +183,7 @@ function Dashboard() {
             </div>
           </div>
 
-          {/* Done */}
+          {/* Completed */}
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -252,7 +255,8 @@ function Dashboard() {
                           {task.status.replace('_', ' ')}
                         </span>
                         <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          task.priority === 'HIGH' ? 'bg-red-100 text-red-800' :
+                          task.priority === 'HIGH' || task.priority === 'URGENT'
+                            ? 'bg-red-100 text-red-800' :
                           task.priority === 'MEDIUM' ? 'bg-orange-100 text-orange-800' :
                           'bg-gray-100 text-gray-800'
                         }`}>
@@ -266,8 +270,10 @@ function Dashboard() {
             )}
           </div>
         </div>
+
       </main>
     </div>
   );
 }
+
 export default Dashboard;
