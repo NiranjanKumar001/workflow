@@ -1,39 +1,40 @@
 package com.nabin.workflow.services.interfaces;
 
 import com.nabin.workflow.dto.request.TaskRequestDTO;
+import com.nabin.workflow.dto.request.TaskFilterDTO;
+import com.nabin.workflow.dto.request.TaskUpdateDTO;
 import com.nabin.workflow.dto.response.TaskResponseDTO;
-import com.nabin.workflow.entities.TaskPriority;
+import com.nabin.workflow.dto.response.TaskStatsDTO;
 import com.nabin.workflow.entities.TaskStatus;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 public interface TaskService {
 
-    // Methods
-    TaskResponseDTO createTask(Long userId, TaskRequestDTO taskRequestDTO);
-    TaskResponseDTO getTaskById(Long userId, Long taskId);
-    List<TaskResponseDTO> getAllTasksByUserId(Long userId);
-    List<TaskResponseDTO> getTasksByStatus(Long userId, TaskStatus status);
-    TaskResponseDTO updateTask(Long userId, Long taskId, TaskRequestDTO taskRequestDTO);
-    void deleteTask(Long userId, Long taskId);
+    TaskResponseDTO createTask(TaskRequestDTO taskDTO);      // ← was TaskRequestDTO
 
-    // Advanced filtering and pagination
-    Page<TaskResponseDTO> getTasksWithFilters(
-            Long userId,
-            TaskStatus status,
-            TaskPriority priority,
-            LocalDateTime dueDateFrom,
-            LocalDateTime dueDateTo,
-            String searchKeyword,
-            Pageable pageable
-    );
+    TaskResponseDTO getTaskById(Long taskId);
 
-    // Get overdue tasks
-    List<TaskResponseDTO> getOverdueTasks(Long userId);
+    List<TaskResponseDTO> getAllTasksForCurrentUser();
 
-    // Get tasks due soon
-    List<TaskResponseDTO> getTasksDueSoon(Long userId, int daysAhead);
+    List<TaskResponseDTO> getTasksByStatus(TaskStatus status);
+
+    TaskResponseDTO updateTask(Long taskId, TaskUpdateDTO taskDTO);
+
+    TaskResponseDTO updateTaskStatus(Long taskId, TaskStatus newStatus);
+
+    void deleteTask(Long taskId);
+
+    Page<TaskResponseDTO> filterTasks(TaskFilterDTO filterDTO);
+
+    List<TaskResponseDTO> getOverdueTasks();
+
+    List<TaskResponseDTO> getTasksDueSoon(int days);
+
+    Long countOverdueTasks();
+
+    TaskStatsDTO getTaskStats();
 }
