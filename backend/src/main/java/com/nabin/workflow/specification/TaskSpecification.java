@@ -1,21 +1,16 @@
 package com.nabin.workflow.specification;
 
+import com.nabin.workflow.entities.Category;
 import com.nabin.workflow.entities.Task;
 import com.nabin.workflow.entities.TaskPriority;
 import com.nabin.workflow.entities.TaskStatus;
-import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.*;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.Set;
 
 public class TaskSpecification {
-
-    // ----------------------------------------------------------------
-    // SINGLE-PURPOSE SPECIFICATIONS (used in TaskServiceImpl)
-    // ----------------------------------------------------------------
 
     public static Specification<Task> hasUserId(Long userId) {
         return (root, query, cb) ->
@@ -32,15 +27,18 @@ public class TaskSpecification {
                 cb.equal(root.get("priority"), priority);
     }
 
-    public static Specification<Task> hasCategoryId(Long categoryId) {
-        return (root, query, cb) ->
-                cb.equal(root.get("category").get("id"), categoryId);
+    // Filter by multiple categories (task has ANY of the specified categories)
+    public static Specification<Task> hasCategoryIds(Set<Long> categoryIds) {
+        return (root, query, cb) -> {
+            if (categoryIds == null || categoryIds.isEmpty()) {
+                return cb.conjunction();
+            }
+
+            Join<Task, Category> categoryJoin = root.join("categories", JoinType.INNER);
+            return categoryJoin.get("id").in(categoryIds);
+        };
     }
 
-    /**
-     * Overdue = dueDate is before today AND status is not COMPLETED or ARCHIVED
-     * FIX: uses LocalDate, not LocalDateTime
-     */
     public static Specification<Task> isOverdue() {
         return (root, query, cb) -> cb.and(
                 cb.lessThan(root.get("dueDate"), LocalDate.now()),
@@ -64,8 +62,13 @@ public class TaskSpecification {
                 cb.between(root.get("dueDate"), from, to);
     }
 
+    // Search in BOTH title AND description (case-insensitive)
     public static Specification<Task> searchByTitleOrDescription(String keyword) {
         return (root, query, cb) -> {
+            if (keyword == null || keyword.isBlank()) {
+                return cb.conjunction();
+            }
+
             String pattern = "%" + keyword.toLowerCase() + "%";
             return cb.or(
                     cb.like(cb.lower(root.get("title")), pattern),
@@ -74,77 +77,8 @@ public class TaskSpecification {
         };
     }
 
-    /**
-     * Excludes tasks whose status is any of the provided values.
-     * Varargs so you can pass as many statuses as needed.
-     */
     public static Specification<Task> statusNotIn(TaskStatus... statuses) {
         return (root, query, cb) ->
-                cb.not(root.get("status").in(Arrays.asList(statuses)));
-    }
-
-    // ----------------------------------------------------------------
-    // COMPOSITE SPECIFICATION (kept for backward-compat if needed)
-    // FIX: dueDateFrom/To changed from LocalDateTime to LocalDate
-    // ----------------------------------------------------------------
-
-    public static Specification<Task> filterTasks(
-            Long userId,
-            TaskStatus status,
-            TaskPriority priority,
-            LocalDate dueDateFrom,
-            LocalDate dueDateTo,
-            String searchKeyword) {
-
-        return (root, query, cb) -> {
-            List<Predicate> predicates = new ArrayList<>();
-
-            if (userId != null) {
-                predicates.add(cb.equal(root.get("user").get("id"), userId));
-            }
-            if (status != null) {
-                predicates.add(cb.equal(root.get("status"), status));
-            }
-            if (priority != null) {
-                predicates.add(cb.equal(root.get("priority"), priority));
-            }
-            if (dueDateFrom != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("dueDate"), dueDateFrom));
-            }
-            if (dueDateTo != null) {
-                predicates.add(cb.lessThanOrEqualTo(root.get("dueDate"), dueDateTo));
-            }
-            if (searchKeyword != null && !searchKeyword.isBlank()) {
-                String pattern = "%" + searchKeyword.toLowerCase() + "%";
-                predicates.add(cb.or(
-                        cb.like(cb.lower(root.get("title")), pattern),
-                        cb.like(cb.lower(root.get("description")), pattern)
-                ));
-            }
-
-            return cb.and(predicates.toArray(new Predicate[0]));
-        };
-    }
-
-    /**
-     * FIX: uses LocalDate, not LocalDateTime
-     */
-    public static Specification<Task> overdueTasks(Long userId) {
-        return Specification
-                .where(hasUserId(userId))
-                .and(isOverdue());
-    }
-
-    /**
-     * FIX: uses LocalDate, not LocalDateTime
-     */
-    public static Specification<Task> tasksDueSoon(Long userId, int daysAhead) {
-        LocalDate today = LocalDate.now();
-        LocalDate futureDate = today.plusDays(daysAhead);
-
-        return Specification
-                .where(hasUserId(userId))
-                .and(dueDateBetween(today, futureDate))
-                .and(statusNotIn(TaskStatus.COMPLETED, TaskStatus.ARCHIVED));
+                cb.not(root.get("status").in((Object[]) statuses));
     }
 }
