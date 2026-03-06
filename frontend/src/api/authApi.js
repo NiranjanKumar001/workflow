@@ -1,33 +1,61 @@
-import axiosInstance from './axios';
+import axios from 'axios';
+
+const API_URL = 'http://localhost:8080/api';
 
 const authApi = {
-  // Register new user
-  register: async (userData) => {
-    const response = await axiosInstance.post('/auth/register', userData);
-    return response;
-  },
-
-  // Login user (stores both access token and refresh token)
+  // Login
   login: async (credentials) => {
-    const response = await axiosInstance.post('/auth/login', credentials);
+    try {
+      const response = await axios.post(`${API_URL}/auth/login`, credentials);
 
-    if (response.success && response.data) {
-      // Store access token
-      localStorage.setItem('token', response.data.token);
+      if (response.data.success && response.data.data) {
+        const { accessToken, refreshToken, user } = response.data.data;
 
-      // Store refresh token
-      localStorage.setItem('refreshToken', response.data.refreshToken);
+        // Store tokens and user
+        localStorage.setItem('token', accessToken);
+        localStorage.setItem('refreshToken', refreshToken);
+        localStorage.setItem('user', JSON.stringify(user));
 
-      // Store user info
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+        console.log('✅ Login successful');
 
-      console.log('Login successful - tokens saved');
+        return {
+          success: true,
+          data: response.data.data
+        };
+      }
+
+      return {
+        success: false,
+        message: response.data.message || 'Login failed'
+      };
+    } catch (error) {
+      console.error('Login error:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Login failed'
+      };
     }
-
-    return response;
   },
 
-  // NEW: Refresh access token
+  // Register
+  register: async (userData) => {
+    try {
+      const response = await axios.post(`${API_URL}/auth/register`, userData);
+      return {
+        success: true,
+        data: response.data.data,
+        message: response.data.message
+      };
+    } catch (error) {
+      console.error('Register error:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Registration failed'
+      };
+    }
+  },
+
+  // Refresh Token
   refreshToken: async () => {
     try {
       const refreshToken = localStorage.getItem('refreshToken');
@@ -36,104 +64,68 @@ const authApi = {
         throw new Error('No refresh token available');
       }
 
-      const response = await axiosInstance.post('/auth/refresh', {
-        refreshToken: refreshToken
-      });
+      const response = await axios.post(`${API_URL}/auth/refresh`, { refreshToken });
 
-      if (response.success && response.data) {
-        // Update tokens
-        localStorage.setItem('token', response.data.accessToken);
-        localStorage.setItem('refreshToken', response.data.refreshToken);
+      if (response.data.success && response.data.data) {
+        const { accessToken, refreshToken: newRefreshToken } = response.data.data;
 
-        console.log('Tokens refreshed successfully');
-        return response.data.accessToken;
+        localStorage.setItem('token', accessToken);
+        localStorage.setItem('refreshToken', newRefreshToken);
+
+        console.log('✅ Token refreshed via authApi');
+
+        return {
+          success: true,
+          data: response.data.data
+        };
       }
 
-      throw new Error('Failed to refresh token');
+      throw new Error('Token refresh failed');
     } catch (error) {
-      console.error('Token refresh failed:', error);
-      // Clear tokens and redirect to login
+      console.error('❌ Refresh token error:', error);
       authApi.logout();
-      window.location.href = '/login';
-      throw error;
+      return {
+        success: false,
+        message: 'Session expired. Please login again.'
+      };
     }
   },
 
-  // UPDATED: Logout with refresh token revocation
+  // Logout
   logout: async () => {
     try {
       const refreshToken = localStorage.getItem('refreshToken');
 
       if (refreshToken) {
-        // Revoke refresh token on server
-        await axiosInstance.post('/auth/logout', {
-          refreshToken: refreshToken
-        });
+        // Try to revoke token on server
+        await axios.post(`${API_URL}/auth/logout`, { refreshToken });
       }
     } catch (error) {
       console.error('Logout error:', error);
-      // Continue with local logout even if server request fails
     } finally {
-      // Clear local storage
+      // Always clear local storage
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
+      console.log('Logged out');
     }
   },
 
-  // NEW: Logout from all devices
-  logoutAll: async () => {
-    try {
-      await axiosInstance.post('/auth/logout-all');
-
-      // Clear local storage
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
-
-      console.log('Logged out from all devices');
-    } catch (error) {
-      console.error('Logout all error:', error);
-      throw error;
-    }
-  },
-
-  // Check if email exists
-  checkEmail: async (email) => {
-    const response = await axiosInstance.get(`/auth/check-email?email=${email}`);
-    return response;
-  },
-
-  // Check if username exists
-  checkUsername: async (username) => {
-    const response = await axiosInstance.get(`/auth/check-username?username=${username}`);
-    return response;
-  },
-
-  // Get current user from localStorage
+  // Get current user
   getCurrentUser: () => {
     const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        return JSON.parse(userStr);
-      } catch (e) {
-        return null;
-      }
-    }
-    return null;
-  },
-
-  // Check if user is authenticated
-  isAuthenticated: () => {
-    const token = localStorage.getItem('token');
-    const refreshToken = localStorage.getItem('refreshToken');
-    return !!(token && refreshToken);
+    return userStr ? JSON.parse(userStr) : null;
   },
 
   // Check if user is admin
   isAdmin: () => {
     const user = authApi.getCurrentUser();
-    return user && user.roles && user.roles.includes('ROLE_ADMIN');
+    return user?.roles?.includes('ROLE_ADMIN') || false;
+  },
+
+  // Check if authenticated
+  isAuthenticated: () => {
+    return !!localStorage.getItem('token');
   }
 };
 
