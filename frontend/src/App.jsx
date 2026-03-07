@@ -6,7 +6,7 @@ import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import AuthCallback from './pages/AuthCallback';
-import TasksPage from "./pages/Tasks.jsx";
+// import TasksPage from "./pages/Tasks.jsx";
 import AdminDashboard from './pages/AdminDashboard';
 import UserDetails from './pages/UserDetails';
 import { authApi } from './api/authApi.js';
@@ -60,18 +60,18 @@ function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
 
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/tasks" element={<ProtectedRoute><TasksPage /></ProtectedRoute>} />
+{/*           <Route path="/tasks" element={<ProtectedRoute><TasksPage /></ProtectedRoute>} /> */}
 
+          <Route
+               path="/tasks"
+                     element={
+                       <ProtectedRoute>
+                         <Tasks />
+                       </ProtectedRoute>
+                     }/>
 
           <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>}/>
-          <Route
-            path="/tasks"
-            element={
-              <ProtectedRoute>
-                <Tasks />
-              </ProtectedRoute>
-            }
-          />
+
           <Route
             path="/categories"
             element={
