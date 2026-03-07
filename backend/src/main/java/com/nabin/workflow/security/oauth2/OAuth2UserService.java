@@ -103,7 +103,7 @@ public class OAuth2UserService extends DefaultOAuth2UserService {
                 });
 
         User newUser = User.builder()
-                .username(generateUsername(userInfo.getEmail()))
+                .username(userInfo.getName() != null ? userInfo.getName() : generateUsername(userInfo.getEmail()))
                 .email(userInfo.getEmail())
                 .password(null)  //  No password for OAuth users
                 .enabled(true)
