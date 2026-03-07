@@ -33,6 +33,16 @@ spring:
     open-in-view: false
 
   # ============================================
+  # FILE UPLOAD CONFIGURATION (Multipart)
+  # ============================================
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 50MB
+      max-request-size: 50MB
+      file-size-threshold: 2KB
+
+  # ============================================
   # OAUTH2 CLIENT CONFIGURATION
   # ============================================
   security:
@@ -87,6 +97,11 @@ spring:
 # ============================================
 server:
   port: 8080
+  tomcat:
+    max-http-form-post-size: 52428800  # 50MB in bytes
+    max-swallow-size: 52428800         # 50MB in bytes
+  servlet:
+    context-path: /
 
 # ============================================
 # APP CONFIGURATION
@@ -120,16 +135,12 @@ cors:
   allowed:
     origins: http://localhost:3000,http://localhost:5173,http://localhost:5174,http://localhost:4200
 
-# File Upload Configuration
-  servlet:
-    multipart:
-      enabled: true
-      max-file-size: 10MB
-      max-request-size: 10MB
-
-# Custom property for upload directory
+# ============================================
+# FILE UPLOAD DIRECTORY
+# ============================================
 file:
   upload-dir: uploads
+
 # ============================================
 # LOGGING CONFIGURATION
 # ============================================
