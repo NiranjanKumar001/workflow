@@ -10,18 +10,29 @@ const attachmentApi = {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await axiosInstance.post(`/attachments/task/${taskId}`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    try {
+      const response = await axiosInstance.post(`/attachments/task/${taskId}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 300000, // ✅ 5 minutes timeout for large files (was default 30s)
+        maxContentLength: 52428800, // ✅ 50MB
+        maxBodyLength: 52428800, // ✅ 50MB
+      });
 
-    return response;
+      return response;
+    } catch (error) {
+      console.error('Upload error details:', {
+        status: error.response?.status,
+        message: error.message,
+        data: error.response?.data
+      });
+      throw error;
+    }
   },
 
   /**
    * Get all attachments for a task
-   * @param {number} taskId - Task ID
    */
   getTaskAttachments: async (taskId) => {
     const response = await axiosInstance.get(`/attachments/task/${taskId}`);
@@ -30,19 +41,17 @@ const attachmentApi = {
 
   /**
    * Download attachment
-   * @param {number} attachmentId - Attachment ID
    */
   downloadAttachment: async (attachmentId) => {
     const response = await axiosInstance.get(`/attachments/${attachmentId}/download`, {
-      responseType: 'blob', // Important for file download
+      responseType: 'blob',
+      timeout: 300000, // ✅ 5 minutes for large downloads
     });
-
     return response;
   },
 
   /**
    * Delete attachment
-   * @param {number} attachmentId - Attachment ID
    */
   deleteAttachment: async (attachmentId) => {
     const response = await axiosInstance.delete(`/attachments/${attachmentId}`);
