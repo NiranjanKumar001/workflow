@@ -49,7 +49,7 @@ public class JwtTokenProvider {
 
         return Jwts.builder().subject(userPrincipal.getEmail())  // Email as subject
                 .claim("userId", userPrincipal.getId())  // User ID
-                .claim("username", userPrincipal.getUsername())  // Username
+                .claim("username", userPrincipal.getActualUsername()) // Username
                 .claim("roles", roles)  // Roles
                 .issuer(jwtIssuer).issuedAt(now).expiration(expiryDate).signWith(getSigningKey()).compact();
     }
@@ -63,7 +63,7 @@ public class JwtTokenProvider {
 
         String roles = userPrincipal.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.joining(","));
 
-        return Jwts.builder().subject(userPrincipal.getEmail()).claim("userId", userPrincipal.getId()).claim("username", userPrincipal.getUsername()).claim("roles", roles).issuer(jwtIssuer).issuedAt(now).expiration(expiryDate).signWith(getSigningKey()).compact();
+        return Jwts.builder().subject(userPrincipal.getEmail()).claim("userId", userPrincipal.getId()).claim("username", userPrincipal.getActualUsername()).claim("roles", roles).issuer(jwtIssuer).issuedAt(now).expiration(expiryDate).signWith(getSigningKey()).compact();
     }
 
     /**
