@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 
 @Data
@@ -37,4 +38,6 @@ public class TaskResponseDTO {
         if (dueDate == null) return null;
         return (int) java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), dueDate);
     }
+    //Multiple files
+    private List<FileAttachmentResponseDTO> attachments;
 }
