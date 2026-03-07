@@ -86,7 +86,6 @@ function Dashboard() {
     <div className="min-h-screen bg-gray-100">
       <EmailVerificationBanner />
 
-      {/* Header */}
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <div>
@@ -100,7 +99,6 @@ function Dashboard() {
           </div>
 
           <div className="flex gap-4">
-            {/* Admin Dashboard Button */}
             {authApi.isAdmin() && (
               <button
                 onClick={() => navigate('/admin')}
@@ -110,7 +108,6 @@ function Dashboard() {
               </button>
             )}
 
-            {/* Statistics Button */}
             <button
               onClick={() => navigate('/statistics')}
               className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
@@ -118,7 +115,6 @@ function Dashboard() {
               📊 Statistics
             </button>
 
-            {/* My Profile Button */}
             <button
               onClick={() => navigate('/profile')}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
@@ -126,7 +122,6 @@ function Dashboard() {
               My Profile
             </button>
 
-            {/* View All Tasks Button */}
             <button
               onClick={() => navigate('/tasks')}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
@@ -134,7 +129,6 @@ function Dashboard() {
               View All Tasks
             </button>
 
-            {/* Logout Button */}
             <button
               onClick={handleLogout}
               className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
@@ -145,9 +139,8 @@ function Dashboard() {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Statistics Cards — using StatCard component */}
+        {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <StatCard
             title="Total Tasks"
@@ -184,7 +177,7 @@ function Dashboard() {
 
           <StatCard
             title="Completed"
-            value={stats?.doneTasks || 0}
+            value={stats?.completedTasks || 0}  // ✅ FIXED: was doneTasks
             color="green"
             icon={
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
