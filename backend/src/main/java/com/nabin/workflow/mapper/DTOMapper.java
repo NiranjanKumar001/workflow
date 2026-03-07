@@ -1,13 +1,7 @@
 package com.nabin.workflow.mapper;
 
-import com.nabin.workflow.dto.response.CategoryResponseDTO;
-import com.nabin.workflow.dto.response.RoleResponseDTO;
-import com.nabin.workflow.dto.response.TaskResponseDTO;
-import com.nabin.workflow.dto.response.UserResponseDTO;
-import com.nabin.workflow.entities.Category;
-import com.nabin.workflow.entities.Role;
-import com.nabin.workflow.entities.Task;
-import com.nabin.workflow.entities.User;
+import com.nabin.workflow.dto.response.*;
+import com.nabin.workflow.entities.*;
 import org.springframework.stereotype.Component;
 
 import java.util.stream.Collectors;
@@ -37,6 +31,9 @@ public class DTOMapper {
                 .categories(task.getCategories().stream()
                         .map(this::toCategoryResponseDTO)
                         .collect(Collectors.toSet()))
+                .attachments(task.getAttachments().stream()
+                        .map(this::toFileAttachmentResponseDTO)
+                        .collect(Collectors.toList()))
                 .createdAt(task.getCreatedAt())
                 .updatedAt(task.getUpdatedAt())
                 .completedAt(task.getCompletedAt())
@@ -82,6 +79,29 @@ public class DTOMapper {
                 .userId(category.getUser().getId())
                 .createdAt(category.getCreatedAt())
                 .updatedAt(category.getUpdatedAt())
+                .build();
+    }
+
+    /**
+     * Convert FileAttachment entity to FileAttachmentResponseDTO
+     */
+    public FileAttachmentResponseDTO toFileAttachmentResponseDTO(FileAttachment attachment) {
+        if (attachment == null) {
+            return null;
+        }
+
+        return FileAttachmentResponseDTO.builder()
+                .id(attachment.getId())
+                .fileName(attachment.getFileName())
+                .originalFileName(attachment.getOriginalFileName())
+                .fileType(attachment.getFileType())
+                .fileSize(attachment.getFileSize())
+                .formattedFileSize(attachment.getFormattedFileSize())
+                .fileExtension(attachment.getFileExtension())
+                .taskId(attachment.getTask().getId())
+                .uploadedByUsername(attachment.getUploadedBy().getUsername())
+                .uploadedAt(attachment.getUploadedAt())
+                .downloadUrl("/api/attachments/" + attachment.getId() + "/download")
                 .build();
     }
 }
