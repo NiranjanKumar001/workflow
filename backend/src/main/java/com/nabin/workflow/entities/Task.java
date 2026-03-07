@@ -7,7 +7,9 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -110,5 +112,20 @@ public class Task {
         for (Category category : new HashSet<>(categories)) {
             removeCategory(category);
         }
+    }
+    // Add this field
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<FileAttachment> attachments = new ArrayList<>();
+
+    // Add helper methods
+    public void addAttachment(FileAttachment attachment) {
+        attachments.add(attachment);
+        attachment.setTask(this);
+    }
+
+    public void removeAttachment(FileAttachment attachment) {
+        attachments.remove(attachment);
+        attachment.setTask(null);
     }
 }
