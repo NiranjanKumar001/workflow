@@ -6,7 +6,7 @@ function FileUpload({ taskId, onUploadSuccess }) {
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
 
-  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+  const MAX_FILE_SIZE = 500 * 1024 * 1024; // 10MB
 
   const ALLOWED_FILE_TYPES = [
     'image/jpeg',
