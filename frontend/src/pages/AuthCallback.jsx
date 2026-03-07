@@ -31,12 +31,12 @@ function AuthCallback() {
         const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
         const payload = JSON.parse(window.atob(base64));
 
-        const user = {
-          id: payload.userId,
-          username: payload.username,
-          email: payload.sub,
-          roles: payload.roles ? payload.roles.split(',') : ['ROLE_USER']
-        };
+      const user = {
+        id: payload.userId,
+        username: payload.username,
+        email: payload.sub,
+        roles: payload.roles ? payload.roles.split(',') : ['ROLE_USER']
+      };
 
         localStorage.setItem('user', JSON.stringify(user));
 
