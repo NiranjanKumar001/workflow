@@ -1,9 +1,8 @@
 package com.nabin.workflow.exception.global;
 
-import com.nabin.workflow.exception.DuplicateResourceException;
-import com.nabin.workflow.exception.ErrorResponse;
-import com.nabin.workflow.exception.ResourceNotFoundException;
-import com.nabin.workflow.exception.UnauthorizedException;
+import com.nabin.workflow.dto.common.ApiResponse;
+import com.nabin.workflow.exception.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     /**
@@ -220,5 +220,12 @@ public class GlobalExceptionHandler {
         ex.printStackTrace();
 
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+    @ExceptionHandler(FileStorageException.class)
+    public ResponseEntity<ApiResponse<Object>> handleFileStorageException(FileStorageException ex) {
+        log.error("File storage error: {}", ex.getMessage());
+
+        ApiResponse<Object> response = ApiResponse.error(ex.getMessage());
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 }
