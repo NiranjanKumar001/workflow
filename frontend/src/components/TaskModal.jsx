@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import FileUpload from './FileUpload';
 import AttachmentList from './AttachmentList';
+import CommentSection from './CommentSection';
 
 function TaskModal({ isOpen, onClose, onSubmit, task, setTask, categories, isEdit }) {
   const [showFileUpload, setShowFileUpload] = useState(false);
@@ -18,7 +19,6 @@ function TaskModal({ isOpen, onClose, onSubmit, task, setTask, categories, isEdi
       if (result?.success && result?.data?.id) {
         setCreatedTaskId(result.data.id);
         setShowFileUpload(true);
-        // Don't close modal yet - allow file upload
       }
     } else {
       // EDIT MODE: Just update normally
@@ -32,7 +32,11 @@ function TaskModal({ isOpen, onClose, onSubmit, task, setTask, categories, isEdi
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-      <div className={`bg-white rounded-lg shadow-xl w-full p-6 my-8 max-h-[90vh] overflow-y-auto ${shouldShowFileUpload ? 'max-w-2xl' : 'max-w-md'}`}>
+      <div
+        className={`bg-white rounded-lg shadow-xl w-full p-6 my-8 max-h-[90vh] overflow-y-auto ${
+          shouldShowFileUpload ? 'max-w-2xl' : 'max-w-md'
+        }`}
+      >
         <h2 className="text-2xl font-bold text-gray-900 mb-4">
           {isEdit ? '✏️ Edit Task' : createdTaskId ? '✅ Task Created!' : '➕ Create New Task'}
         </h2>
@@ -50,7 +54,9 @@ function TaskModal({ isOpen, onClose, onSubmit, task, setTask, categories, isEdi
           {(!createdTaskId || isEdit) && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Title *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Title *
+                </label>
                 <input
                   type="text"
                   value={task?.title || ''}
@@ -61,7 +67,9 @@ function TaskModal({ isOpen, onClose, onSubmit, task, setTask, categories, isEdi
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description
+                </label>
                 <textarea
                   value={task?.description || ''}
                   onChange={(e) => setTask({ ...task, description: e.target.value })}
@@ -73,7 +81,9 @@ function TaskModal({ isOpen, onClose, onSubmit, task, setTask, categories, isEdi
               <div className="grid grid-cols-2 gap-4">
                 {isEdit && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Status
+                    </label>
                     <select
                       value={task?.status || 'TODO'}
                       onChange={(e) => setTask({ ...task, status: e.target.value })}
@@ -88,7 +98,9 @@ function TaskModal({ isOpen, onClose, onSubmit, task, setTask, categories, isEdi
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Priority
+                  </label>
                   <select
                     value={task?.priority || 'MEDIUM'}
                     onChange={(e) => setTask({ ...task, priority: e.target.value })}
@@ -102,7 +114,9 @@ function TaskModal({ isOpen, onClose, onSubmit, task, setTask, categories, isEdi
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Due Date</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Due Date
+                  </label>
                   <input
                     type="date"
                     value={task?.dueDate || ''}
@@ -114,7 +128,9 @@ function TaskModal({ isOpen, onClose, onSubmit, task, setTask, categories, isEdi
 
               {categories?.length > 0 && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Categories</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Categories
+                  </label>
                   <div className="flex flex-wrap gap-2">
                     {categories.map((cat) => (
                       <button
@@ -125,8 +141,8 @@ function TaskModal({ isOpen, onClose, onSubmit, task, setTask, categories, isEdi
                           setTask({
                             ...task,
                             categoryIds: ids.includes(cat.id)
-                              ? ids.filter(id => id !== cat.id)
-                              : [...ids, cat.id]
+                              ? ids.filter((id) => id !== cat.id)
+                              : [...ids, cat.id],
                           });
                         }}
                         className={`px-3 py-1 rounded-full text-xs font-semibold transition ${
@@ -137,7 +153,7 @@ function TaskModal({ isOpen, onClose, onSubmit, task, setTask, categories, isEdi
                         style={{
                           backgroundColor: (task?.categoryIds || []).includes(cat.id)
                             ? cat.color
-                            : undefined
+                            : undefined,
                         }}
                       >
                         {cat.name}
@@ -149,7 +165,7 @@ function TaskModal({ isOpen, onClose, onSubmit, task, setTask, categories, isEdi
             </>
           )}
 
-          {/* FILE UPLOAD SECTION - Show after task created OR in edit mode */}
+          {/* FILE UPLOAD SECTION */}
           {shouldShowFileUpload && uploadTaskId && (
             <div className="border-t-2 border-gray-200 pt-4 mt-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -171,6 +187,11 @@ function TaskModal({ isOpen, onClose, onSubmit, task, setTask, categories, isEdi
                 />
               </div>
             </div>
+          )}
+
+          {/* COMMENT SECTION — only in edit mode */}
+          {isEdit && task?.id && (
+            <CommentSection taskId={task.id} />
           )}
 
           {/* Buttons */}
