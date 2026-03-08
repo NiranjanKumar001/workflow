@@ -26,6 +26,8 @@ public class TaskResponseDTO {
     private Boolean overdue;
     private Long userId;
     private String username;
+    private long commentCount;
+
 
     // Multiple categories
     private Set<CategoryResponseDTO> categories;
@@ -40,4 +42,5 @@ public class TaskResponseDTO {
     }
     //Multiple files
     private List<FileAttachmentResponseDTO> attachments;
+
 }
