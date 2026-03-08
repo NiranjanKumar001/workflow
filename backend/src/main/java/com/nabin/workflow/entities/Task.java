@@ -128,4 +128,20 @@ public class Task {
         attachments.remove(attachment);
         attachment.setTask(null);
     }
+
+    @Builder.Default
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("createdAt DESC")
+    private List<Comment> comments = new ArrayList<>();
+
+    // Helper methods
+    public void addComment(Comment comment) {
+        comments.add(comment);
+        comment.setTask(this);
+    }
+
+    public void removeComment(Comment comment) {
+        comments.remove(comment);
+        comment.setTask(null);
+    }
 }
