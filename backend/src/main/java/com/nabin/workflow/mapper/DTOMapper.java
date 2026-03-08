@@ -27,19 +27,18 @@ public class DTOMapper {
                 .overdue(task.isOverdue())
                 .userId(task.getUser().getId())
                 .username(task.getUser().getUsername())
-                // Map multiple categories
                 .categories(task.getCategories().stream()
                         .map(this::toCategoryResponseDTO)
                         .collect(Collectors.toSet()))
                 .attachments(task.getAttachments().stream()
                         .map(this::toFileAttachmentResponseDTO)
                         .collect(Collectors.toList()))
+                .commentCount(task.getComments() != null ? task.getComments().size() : 0)  // ADD THIS LINE
                 .createdAt(task.getCreatedAt())
                 .updatedAt(task.getUpdatedAt())
                 .completedAt(task.getCompletedAt())
                 .build();
     }
-
     /**
      * Convert User entity to UserResponseDTO
      */
@@ -103,5 +102,20 @@ public class DTOMapper {
                 .uploadedAt(attachment.getUploadedAt())
                 .downloadUrl("/api/attachments/" + attachment.getId() + "/download")
                 .build();
+    }
+
+     /** For Comment Responses */
+    public static CommentResponseDTO toCommentResponseDTO(Comment comment) {
+        CommentResponseDTO dto = new CommentResponseDTO();
+        dto.setId(comment.getId());
+        dto.setContent(comment.getContent());
+        dto.setTaskId(comment.getTask().getId());
+        dto.setUserId(comment.getUser().getId());
+        dto.setUsername(comment.getUser().getUsername());
+        dto.setUserEmail(comment.getUser().getEmail());
+        dto.setCreatedAt(comment.getCreatedAt());
+        dto.setUpdatedAt(comment.getUpdatedAt());
+        dto.setEdited(comment.isEdited());
+        return dto;
     }
 }
