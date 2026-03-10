@@ -115,7 +115,9 @@ function Login() {
   // Google Login Handler
   const handleGoogleLogin = () => {
     console.log('Redirecting to Google OAuth...');
-    window.location.href = 'http://localhost:8080/oauth2/authorization/google';
+    const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+    const backendBase = apiBase.replace('/api', '');
+    window.location.href = `${backendBase}/oauth2/authorization/google`;
   };
 
   return (
