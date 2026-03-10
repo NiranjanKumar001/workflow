@@ -26,6 +26,12 @@ mvnw.cmd
 **/application-dev.properties
 **/application-prod.properties
 
+# Environment variables
+backend/.env
+backend/.env.local
+.env
+.env.local
+
 # Logs
 *.log
 logs/

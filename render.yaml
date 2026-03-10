@@ -1,0 +1,59 @@
+databases:
+  - name: workflow-db
+    databaseName: workflow_db
+    user: workflow_user
+    plan: free
+
+services:
+  - type: web
+    name: workflow-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: DB_HOST
+        fromDatabase:
+          name: workflow-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: workflow-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: workflow-db
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: workflow-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: workflow-db
+          property: password
+      - key: PORT
+        value: 8080
+      - key: UPLOAD_DIR
+        value: /app/uploads
+      - key: JWT_SECRET
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: OAUTH2_REDIRECT_URI
+        sync: false
+      - key: EMAIL_USERNAME
+        sync: false
+      - key: EMAIL_PASSWORD
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
